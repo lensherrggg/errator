@@ -810,7 +810,7 @@ mod ui {
                 .constraints([
                     Constraint::Length(3),
                     Constraint::Min(3),
-                    Constraint::Length(3),
+                    Constraint::Length(4),
                 ])
                 .split(area);
             let title = format!(" Errator {} · 选择文件 ", env!("CARGO_PKG_VERSION"));
@@ -973,37 +973,39 @@ mod ui {
             let chunks = Layout::default()
                 .direction(Direction::Vertical)
                 .constraints([
-                    Constraint::Length(4),
+                    Constraint::Length(5),
                     Constraint::Min(5),
-                    Constraint::Length(3),
+                    Constraint::Length(4),
                 ])
                 .split(area);
             let Some(report) = self.report.as_mut() else {
                 return;
             };
+            let device = execution_device_label(&report.report.semantic);
+            let source_line = truncate_width(
+                &format!("源文件：{}", report.report.source),
+                area.width.saturating_sub(2) as usize,
+            );
             let header = Paragraph::new(Text::from(vec![
                 Line::from(vec![
+                    Span::styled("计算设备：", Style::default().fg(Color::DarkGray)),
                     Span::styled(
-                        format!(
-                            "Errator {} · {} ",
-                            env!("CARGO_PKG_VERSION"),
-                            report.report.source
-                        ),
+                        device.clone(),
                         Style::default()
                             .fg(Color::Cyan)
                             .add_modifier(Modifier::BOLD),
                     ),
                     Span::styled(
                         format!(
-                            "error {} · warning {} · info {} · 设备：{}",
+                            "   error {}  ·  warning {}  ·  info {}",
                             report.report.summary.by_severity.error,
                             report.report.summary.by_severity.warning,
-                            report.report.summary.by_severity.info,
-                            execution_device_label(&report.report.semantic)
+                            report.report.summary.by_severity.info
                         ),
                         Style::default().fg(Color::Gray),
                     ),
                 ]),
+                Line::from(Span::styled(source_line, Style::default().fg(Color::Gray))),
                 Line::from(Span::styled(
                     format!(
                         "筛选：{}（f 切换，0/1/2/3 直选）  显示 {}/{} 条{}",
@@ -1023,7 +1025,10 @@ mod ui {
                 Block::default()
                     .borders(Borders::ALL)
                     .border_type(BorderType::Rounded)
-                    .title(" 勘误报告 "),
+                    .title(format!(
+                        " Errator {} · 勘误报告 ",
+                        env!("CARGO_PKG_VERSION")
+                    )),
             );
             frame.render_widget(header, chunks[0]);
 
@@ -1105,33 +1110,29 @@ mod ui {
                 "↑/↓ 选择  i 忽略并持久化  e 导出  f 筛选  Esc 返回  ? 帮助  q 退出",
                 Style::default().fg(Color::Gray),
             ))];
+            let mut detail = format!("计算设备：{device}");
             if !self.status.is_empty() {
-                footer_lines.push(Line::from(Span::styled(
-                    self.status.clone(),
-                    Style::default().fg(Color::Cyan),
-                )));
+                detail.push_str(" · ");
+                detail.push_str(&self.status);
             } else if let Some(warning) = &report.report.semantic_warning {
-                footer_lines.push(Line::from(Span::styled(
-                    format!("语义提示：{warning}"),
-                    Style::default().fg(Color::DarkGray),
-                )));
+                detail.push_str(" · 语义提示：");
+                detail.push_str(warning);
             } else if let Some(warning) = report.warnings.first() {
-                footer_lines.push(Line::from(Span::styled(
-                    warning.clone(),
-                    Style::default().fg(Color::DarkGray),
-                )));
+                detail.push_str(" · ");
+                detail.push_str(warning);
             } else {
-                footer_lines.push(Line::from(Span::styled(
-                    format!(
-                        "计算设备：{} · 忽略库：{}",
-                        execution_device_label(&report.report.semantic),
-                        paths::ignores_path()
-                            .map(|path| path.display().to_string())
-                            .unwrap_or_else(|_| "~/.errator/ignores.json".to_owned())
-                    ),
-                    Style::default().fg(Color::DarkGray),
-                )));
+                detail.push_str(" · 忽略库：");
+                detail.push_str(
+                    &paths::ignores_path()
+                        .map(|path| path.display().to_string())
+                        .unwrap_or_else(|_| "~/.errator/ignores.json".to_owned()),
+                );
             }
+            let detail = truncate_width(&detail, area.width.saturating_sub(2) as usize);
+            footer_lines.push(Line::from(Span::styled(
+                detail,
+                Style::default().fg(Color::DarkGray),
+            )));
             let footer = Paragraph::new(Text::from(footer_lines)).block(
                 Block::default()
                     .borders(Borders::ALL)
@@ -1456,6 +1457,7 @@ mod ui {
                 compact.contains("选择文件") || compact.contains("文件（"),
                 "rendered buffer:\n{text}"
             );
+            assert!(compact.contains("q退出"), "rendered buffer:\n{text}");
         }
 
         #[test]
@@ -1497,6 +1499,40 @@ mod ui {
             assert!(compact.contains("另一个错误"));
             assert!(compact.contains("筛选"));
             assert!(compact.contains("CPU"), "rendered buffer:\n{text}");
+            assert!(compact.contains("q退出"), "rendered buffer:\n{text}");
+        }
+
+        #[test]
+        fn report_header_shows_device_even_with_a_very_long_source_path() {
+            let temp = TempDir::new().unwrap();
+            let long_source = format!("D:/{}/doc.md", "很长目录/".repeat(30));
+            let report = Report::new(
+                long_source.clone(),
+                SemanticInfo::disabled(),
+                None,
+                Vec::new(),
+                false,
+            );
+            let mut app = app_for(temp.path());
+            app.report = Some(ReportView::new(
+                report,
+                PathBuf::from(&long_source),
+                Vec::new(),
+            ));
+            app.screen = Screen::Report;
+            let mut terminal = Terminal::new(TestBackend::new(120, 32)).unwrap();
+            terminal.draw(|frame| app.draw(frame)).unwrap();
+            let text = text_of(&terminal);
+            let compact: String = text
+                .chars()
+                .filter(|character| !character.is_whitespace())
+                .collect();
+            assert!(
+                compact.contains("计算设备：CPU（规则检查）"),
+                "rendered buffer:\n{text}"
+            );
+            assert!(compact.contains("q退出"), "rendered buffer:\n{text}");
+            assert!(compact.contains("筛选"), "rendered buffer:\n{text}");
         }
 
         #[test]

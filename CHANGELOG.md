@@ -4,16 +4,24 @@
 
 ## [Unreleased]
 
-### Changed
-
-- README 重写为完整使用手册：安装/验证、TUI 操作、全部 CLI 命令、配置示例、报告格式、语义设备、CI 集成、FAQ 与故障排查。
-
 ### Planned
 
 - SentencePiece tokenizer support for semantic models.
 - Native SDK crate extraction and compile-time rule registration.
 - Template-based custom exporters.
 - Ruleset asset bundling for installed rulesets.
+
+## [0.5.2] - 2026-10-24
+
+### Fixed
+
+- TUI 报告页头部的设备与计数原先与超长源路径挤在同一行，路径过长时会被裁掉；现在设备固定显示在头部第一行，源文件单独一行并截断。
+- TUI 报告页底部高度不足，第二条状态/设备行不可见；现在固定显示“计算设备 + 状态/提示”。
+- TUI 文件浏览页底部快捷键行被裁掉；布局已调整。
+
+### Changed
+
+- README 重写为完整使用手册：安装/验证、TUI 操作、全部 CLI 命令、配置示例、报告格式、语义设备、CI 集成、FAQ 与故障排查。
 
 ## [0.5.1] - 2026-10-24
 
