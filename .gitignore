@@ -1,0 +1,16 @@
+/target/
+/tmp/
+/dist/
+/需求.md
+/扩展.md
+*.log
+**/*.rs.bk
+*.pdb
+*.exe
+*.dll
+.idea/
+.vscode/
+*.tmp
+.errator/
+.DS_Store
+Thumbs.db
