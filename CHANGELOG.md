@@ -11,6 +11,13 @@
 - Template-based custom exporters.
 - Ruleset asset bundling for installed rulesets.
 
+## [0.7.1] - 2026-10-24
+
+### Fixed
+
+- 当 `context` 与问题原文完全相同时（例如短标题段落），TUI 此前完全不显示上下文；现在始终展示并高亮原文。
+- 同一段落后文出现重复词时，上下文高亮改为选择最接近问题 `char_offset/column` 的匹配项，不再固定高亮第一次出现的位置。
+
 ## [0.7.0] - 2026-10-24
 
 ### Added

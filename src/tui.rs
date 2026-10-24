@@ -1450,9 +1450,7 @@ mod ui {
                 )),
             ]),
         ]);
-        if let Some(context) = issue.location.context()
-            && context != issue.original
-        {
+        if let Some(context) = issue.location.context() {
             lines.push(Line::from(""));
             lines.push(Line::from(Span::styled(
                 "上下文（高亮处为原文）",
@@ -1474,17 +1472,39 @@ mod ui {
             .bg(background)
             .fg(foreground)
             .add_modifier(Modifier::BOLD);
-        if !issue.original.is_empty()
-            && let Some(start) = context.find(&issue.original)
-        {
-            let end = start + issue.original.len();
-            return Line::from(vec![
-                Span::styled(context[..start].to_owned(), normal),
-                Span::styled(context[start..end].to_owned(), highlighted),
-                Span::styled(context[end..].to_owned(), normal),
-            ]);
+        let needle = issue.original.replace(['\r', '\n', '\t'], " ");
+        if !needle.is_empty() {
+            let expected = expected_context_position(issue, context);
+            let found = context.match_indices(&needle).min_by_key(|(start, _)| {
+                let position = context[..*start].chars().count() as isize;
+                (position - expected as isize).unsigned_abs()
+            });
+            if let Some((start, _)) = found {
+                let end = start + needle.len();
+                return Line::from(vec![
+                    Span::styled(context[..start].to_owned(), normal),
+                    Span::styled(context[start..end].to_owned(), highlighted),
+                    Span::styled(context[end..].to_owned(), normal),
+                ]);
+            }
         }
         Line::from(Span::styled(context.to_owned(), normal))
+    }
+
+    /// Estimate where the issue should appear inside the displayed context.
+    /// For clipped contexts the window normally starts 160 chars before the
+    /// issue; using that as the anchor avoids highlighting an earlier duplicate.
+    fn expected_context_position(issue: &Issue, context: &str) -> usize {
+        let raw_position = match &issue.location {
+            crate::model::Location::Text { column, .. } => column.saturating_sub(1),
+            crate::model::Location::Docx { char_offset, .. } => char_offset.saturating_sub(1),
+        };
+        if !context.starts_with('…') {
+            return raw_position;
+        }
+        let ellipsis = usize::from(context.starts_with('…'));
+        let window_before = 160;
+        ellipsis + raw_position.min(window_before)
     }
 
     fn draw_help(frame: &mut Frame<'_>) {
@@ -1888,6 +1908,33 @@ mod ui {
             assert_eq!(line.spans.len(), 3);
             assert_eq!(line.spans[1].content.as_ref(), "使用Rust开发");
             assert_eq!(line.spans[1].style.bg, Some(Color::Yellow));
+        }
+
+        #[test]
+        fn context_equal_to_original_is_still_rendered() {
+            let issue = sample_issue("2026年配网防汛防台座谈会");
+            let text = issue_detail_text(&issue);
+            let combined: String = text
+                .lines
+                .iter()
+                .flat_map(|line| line.spans.iter())
+                .map(|span| span.content.as_ref())
+                .collect();
+            assert!(combined.contains("上下文（高亮处为原文）"));
+        }
+
+        #[test]
+        fn highlight_prefers_the_in_place_duplicate_not_an_earlier_one() {
+            let mut issue = sample_issue("2024年");
+            let context = "2024年开头，中间文字，2024年结束";
+            issue.location = Location::Text {
+                line: 1,
+                column: 13,
+                context: Some(context.to_owned()),
+            };
+            let line = context_line(&issue, context);
+            assert_eq!(line.spans[0].content.as_ref(), "2024年开头，中间文字，");
+            assert_eq!(line.spans[1].content.as_ref(), "2024年");
         }
 
         #[test]
