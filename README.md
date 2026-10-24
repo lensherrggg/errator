@@ -2,7 +2,7 @@
 
 本地文本勘误报告生成器。读取 `.txt` / `.md` / `.docx`，运行格式、标点、空格、错别字、术语一致性与自定义规则检查；可选加载本地 ONNX 模型做上下文纠错。结果可在终端查看，也可导出 Markdown / HTML / JSON / CSV；无参数启动 TUI，全程默认离线。
 
-当前版本：**0.7.1**（Windows 优先发布；源码面向 Windows / macOS / Linux）。
+当前版本：**0.7.2**（Windows 优先发布；源码面向 Windows / macOS / Linux）。
 
 ## 目录
 
@@ -60,8 +60,8 @@ docs/
 在 PowerShell 中：
 
 ```powershell
-# 假设解压到 D:\tools\errator-0.7.1-windows-x86_64
-cd D:\tools\errator-0.7.1-windows-x86_64
+# 假设解压到 D:\tools\errator-0.7.2-windows-x86_64
+cd D:\tools\errator-0.7.2-windows-x86_64
 
 .\errator.exe version
 .\errator.exe check .\doc.md
@@ -70,7 +70,7 @@ cd D:\tools\errator-0.7.1-windows-x86_64
 可选：仅当前 PowerShell 会话加入 PATH：
 
 ```powershell
-$env:Path += ";D:\tools\errator-0.7.1-windows-x86_64"
+$env:Path += ";D:\tools\errator-0.7.2-windows-x86_64"
 errator check .\doc.md
 ```
 
@@ -79,7 +79,7 @@ errator check .\doc.md
 校验下载包（PowerShell）：
 
 ```powershell
-Get-FileHash .\errator-0.7.1-windows-x86_64.zip -Algorithm SHA256
+Get-FileHash .\errator-0.7.2-windows-x86_64.zip -Algorithm SHA256
 # 与 .sha256 文件中的值比较
 ```
 
@@ -184,7 +184,7 @@ errator check doc.md
 Errator 勘误报告
 源文件：doc.md
 生成时间：2026-10-24T21:06:39+08:00
-工具版本：0.7.1
+工具版本：0.7.2
 计算设备：CPU（规则检查）
 语义检查：关闭（仅规则检查）
 
@@ -351,7 +351,8 @@ errator tui ./docs --no-gpu
 
 - 左侧（窄屏为上方）是问题列表；
 - 右侧（窄屏为下方）显示选中问题的详情、原文、建议、上下文与来源；
-- “上下文”最长约 400 字；问题原文在上下文中用彩色底色高亮；即使上下文与原文完全相同也会展示；
+- 详情采用紧凑布局：标题包含类型，位置/来源/置信度合并一行，上下文通常在第六行左右出现；
+- “上下文”最长约 400 字，问题前保留约 96 字；问题原文在上下文中用彩色底色高亮；即使上下文与原文完全相同也会展示；
 - 同一段中存在重复词时，高亮位置会尽量依据问题在段落中的 `char_offset/column` 选择正确的那一处；
 - 顶部第一行固定显示**计算设备**与问题计数，第二行显示源文件，第三行显示筛选状态；
 - 底部第一行是快捷键，第二行固定显示计算设备与最近状态/提示；
@@ -728,7 +729,7 @@ PROJECT = "docs"
 ```json
 {
   "schema_version": "1.0",
-  "tool": { "name": "errator", "version": "0.7.1" },
+  "tool": { "name": "errator", "version": "0.7.2" },
   "generated_at": "2026-10-24T21:06:39+08:00",
   "source": "doc.md",
   "cancelled": false,
@@ -969,7 +970,7 @@ TUI 需要交互式终端；非 TTY 环境请使用 errator check
 把发布目录加入当前 PATH：
 
 ```powershell
-$env:Path += ";D:\tools\errator-0.7.1-windows-x86_64"
+$env:Path += ";D:\tools\errator-0.7.2-windows-x86_64"
 ```
 
 或使用完整路径 `.\errator.exe`。注意 PATH 只在当前会话有效时，重开终端会恢复。
@@ -1077,7 +1078,7 @@ pwsh -File scripts/package-windows.ps1
 - 语义化版本 `MAJOR.MINOR.PATCH`，唯一来源是 `Cargo.toml`。
 - `build.rs` 嵌入 `git describe`，可通过 `errator version --json` 查看。
 - 报告数据契约独立版本化：当前 `schema_version = "1.0"`。
-- 发布以 annotated Git tag（当前 `v0.7.1`）标记，变更见 [CHANGELOG.md](CHANGELOG.md)。
+- 发布以 annotated Git tag（当前 `v0.7.2`）标记，变更见 [CHANGELOG.md](CHANGELOG.md)。
 - 规则 ID 发布后不重命名；废弃时保留 ID 并标记。
 - 发布流程见 [docs/versioning.md](docs/versioning.md)。
 

@@ -1404,54 +1404,47 @@ mod ui {
                         .fg(Color::White)
                         .add_modifier(Modifier::BOLD),
                 ),
+                Span::styled(
+                    format!(" · {}", issue.category),
+                    Style::default().fg(Color::DarkGray),
+                ),
             ]),
-            Line::from(vec![
-                Span::styled("类型：", Style::default().fg(Color::DarkGray)),
-                Span::raw(issue.category.clone()),
-            ]),
-            Line::from(""),
             Line::from(vec![
                 Span::styled("位置：", Style::default().fg(Color::DarkGray)),
                 Span::raw(format!(
-                    "{}（{}）",
+                    "{}{}（{}） · 来源：{} · {:.2}",
+                    issue
+                        .file
+                        .as_ref()
+                        .map(|file| format!("{file} · "))
+                        .unwrap_or_default(),
                     issue.location.short(),
-                    issue.location.kind()
-                )),
-            ]),
-        ];
-        if let Some(file) = &issue.file {
-            lines.push(Line::from(vec![
-                Span::styled("文件：", Style::default().fg(Color::DarkGray)),
-                Span::raw(file.clone()),
-            ]));
-        }
-        lines.extend([
-            Line::from(""),
-            Line::from(Span::styled("原文", Style::default().fg(Color::DarkGray))),
-            Line::from(Span::styled(
-                issue.original.clone(),
-                Style::default().fg(Color::Red),
-            )),
-            Line::from(""),
-            Line::from(Span::styled("建议", Style::default().fg(Color::DarkGray))),
-            Line::from(Span::styled(
-                issue.suggestion.clone(),
-                Style::default().fg(Color::Green),
-            )),
-            Line::from(""),
-            Line::from(issue.message.clone()),
-            Line::from(""),
-            Line::from(vec![
-                Span::styled("来源：", Style::default().fg(Color::DarkGray)),
-                Span::raw(format!(
-                    "{}（置信度 {:.2}）",
+                    issue.location.kind(),
                     issue.source.label(),
                     issue.confidence
                 )),
             ]),
-        ]);
+            Line::from(vec![
+                Span::styled("原文：", Style::default().fg(Color::DarkGray)),
+                Span::styled(issue.original.clone(), Style::default().fg(Color::Red)),
+            ]),
+            Line::from(vec![
+                Span::styled("建议：", Style::default().fg(Color::DarkGray)),
+                Span::styled(
+                    if issue.suggestion.is_empty() {
+                        "—（仅报告）".to_owned()
+                    } else {
+                        issue.suggestion.clone()
+                    },
+                    Style::default().fg(Color::Green),
+                ),
+            ]),
+            Line::from(vec![
+                Span::styled("说明：", Style::default().fg(Color::DarkGray)),
+                Span::raw(issue.message.clone()),
+            ]),
+        ];
         if let Some(context) = issue.location.context() {
-            lines.push(Line::from(""));
             lines.push(Line::from(Span::styled(
                 "上下文（高亮处为原文）",
                 Style::default().fg(Color::DarkGray),
@@ -1503,7 +1496,7 @@ mod ui {
             return raw_position;
         }
         let ellipsis = usize::from(context.starts_with('…'));
-        let window_before = 160;
+        let window_before = 96;
         ellipsis + raw_position.min(window_before)
     }
 
@@ -1921,6 +1914,34 @@ mod ui {
                 .map(|span| span.content.as_ref())
                 .collect();
             assert!(combined.contains("上下文（高亮处为原文）"));
+        }
+
+        #[test]
+        fn detail_layout_keeps_context_near_the_top() {
+            let mut issue = sample_issue("使用Rust开发");
+            issue.location = Location::Text {
+                line: 1,
+                column: 1,
+                context: Some(format!(
+                    "{}使用Rust开发{}",
+                    "前文".repeat(50),
+                    "后文".repeat(100)
+                )),
+            };
+            let text = issue_detail_text(&issue);
+            let context_index = text
+                .lines
+                .iter()
+                .position(|line| {
+                    line.spans
+                        .iter()
+                        .any(|span| span.content.contains("上下文（高亮处为原文）"))
+                })
+                .expect("context section should exist");
+            assert!(
+                context_index <= 5,
+                "context starts too low in detail: {context_index}"
+            );
         }
 
         #[test]

@@ -265,7 +265,7 @@ fn build_line_starts(text: &str) -> Vec<usize> {
 
 fn clip_context(line: &str, anchor_byte: usize) -> String {
     const CONTEXT_MAX_CHARS: usize = 400;
-    const CONTEXT_BEFORE_CHARS: usize = 160;
+    const CONTEXT_BEFORE_CHARS: usize = 96;
 
     let line = line.replace(['\r', '\n', '\t'], " ");
     if line.chars().count() <= CONTEXT_MAX_CHARS {
