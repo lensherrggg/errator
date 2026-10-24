@@ -166,7 +166,7 @@ timeout_ms = 5000
 | L2 | 任意语言外部检查器（stdin/stdout JSON） | `[external.<name>]`、[协议](docs/external-checkers.md) |
 | L3 | Rust 原生规则/导出器 | `errator::rules::Rule`、`errator::report::Exporter`、`errator::sdk` |
 
-内置规则表与新增规则流程见 [docs/rules.md](docs/rules.md)；模块边界与扩展点见 [docs/architecture.md](docs/architecture.md)；规则集打包见 [docs/rulesets.md](docs/rulesets.md)。
+内置规则表与新增规则流程见 [docs/rules.md](docs/rules.md)；完整系统设计见 [docs/design.md](docs/design.md)；模块边界与扩展点见 [docs/architecture.md](docs/architecture.md)；规则集打包见 [docs/rulesets.md](docs/rulesets.md)。
 
 ## 跨平台
 

@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- `docs/design.md`：0.5.0 系统设计文档（架构、数据契约、语义/GPU 降级、TUI、扩展与取舍）。
+
 ### Planned
 
 - SentencePiece tokenizer support for semantic models.
