@@ -4,16 +4,24 @@
 
 ## [Unreleased]
 
-### Added
-
-- `docs/design.md`：0.5.0 系统设计文档（架构、数据契约、语义/GPU 降级、TUI、扩展与取舍）。
-
 ### Planned
 
 - SentencePiece tokenizer support for semantic models.
 - Native SDK crate extraction and compile-time rule registration.
 - Template-based custom exporters.
 - Ruleset asset bundling for installed rulesets.
+
+## [0.5.1] - 2026-10-24
+
+### Added
+
+- CLI 摘要、Markdown/HTML 报告与 TUI 检查页/报告页/状态栏显示实际计算设备：`CPU（规则检查）`、`CPU · ONNX Runtime`、`GPU · DirectML`、`GPU · CoreML`，降级时标注“已降级”。
+- `docs/design.md`：0.5.1 系统设计文档（架构、数据契约、语义/GPU 降级、TUI、扩展与取舍）。
+- Windows 发布包现在附带 `docs/`，README 中的文档链接在离线包内可用。
+
+### Changed
+
+- 语义信息摘要不再重复设备字段，改为“语义状态 + 计算设备”两行展示；JSON schema 与设备字段不变。
 
 ## [0.5.0] - 2026-10-24
 

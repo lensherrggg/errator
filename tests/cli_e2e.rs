@@ -97,6 +97,7 @@ fn markdown_report_contains_all_required_sections() {
     assert!(text.contains("- **源文件**："));
     assert!(text.contains("- **生成时间**："));
     assert!(text.contains("- **工具版本**："));
+    assert!(text.contains("- **计算设备**：CPU（规则检查）"));
     assert!(text.contains("| 问题总数 | 1 |"));
     assert!(text.contains("### [warning] CJK_SPACE_MISSING"));
     assert!(text.contains("```text"));

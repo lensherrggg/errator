@@ -56,6 +56,7 @@ foreach ($name in @('DirectML.dll', 'onnxruntime.dll', 'onnxruntime_providers_sh
 Copy-Item (Join-Path $root 'README.md') $bundleDir
 Copy-Item (Join-Path $root 'CHANGELOG.md') $bundleDir
 Copy-Item (Join-Path $root 'LICENSE') $bundleDir
+Copy-Item (Join-Path $root 'docs') (Join-Path $bundleDir 'docs') -Recurse
 Copy-Item (Join-Path $root 'docs/THIRD_PARTY_NOTICES.md') $bundleDir
 
 $versionText = & $exe version

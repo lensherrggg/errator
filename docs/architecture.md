@@ -98,6 +98,7 @@ fn analyze(&mut self, doc: &Document, token: &CancellationToken,
 
 - `schema_version = "1.0"`。
 - 保留字段：`rule_id`、`category`、`severity`、`location`、`original`、`suggestion`、`message`、`source`、`confidence`。
+- 人类可读格式直接显示“计算设备”（CPU 规则检查 / CPU ONNX / GPU DirectML / GPU CoreML），JSON 使用 `semantic.device` 与 `fallback_occurred`。
 - 新增可选字段（如批量 `file`）不改变单文件契约；移除/重命名字段需要提升 schema 版本。
 - 内部字段（`offset`、`semantic_warning`）不序列化。
 

@@ -68,6 +68,7 @@ errator models download \
 - `auto` 在 GPU 缺失时静默使用 CPU；显式指定 GPU 失败时输出警告并回退。
 - `allow_gpu_fallback = false` 时，GPU 不可用会禁用可选语义层，但规则检查继续。
 - 初始化失败与推理失败都会尝试降级；`semantic.fallback_occurred` 记录是否发生回退，`semantic.device` 记录实际使用设备。
+- CLI 文本摘要、Markdown/HTML 报告与 TUI 会直接显示 **计算设备**（CPU 规则检查 / CPU ONNX / GPU DirectML / GPU CoreML），不用只靠 JSON 字段判断。
 - 报告结构与 `schema_version` 不因设备变化而变化。
 
 ## 已知限制

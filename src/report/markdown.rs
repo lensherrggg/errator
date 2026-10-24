@@ -1,5 +1,5 @@
 use crate::model::{Issue, Report};
-use crate::report::semantic_description;
+use crate::report::{execution_device_label, semantic_description};
 
 pub fn render(report: &Report) -> String {
     let mut output = String::new();
@@ -19,6 +19,10 @@ pub fn render(report: &Report) -> String {
     output.push_str(&format!(
         "- **语义检查**：{}\n",
         semantic_description(&report.semantic)
+    ));
+    output.push_str(&format!(
+        "- **计算设备**：{}\n",
+        execution_device_label(&report.semantic)
     ));
     output.push('\n');
 

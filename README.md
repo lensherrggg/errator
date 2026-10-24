@@ -2,7 +2,7 @@
 
 本地文本勘误报告生成器。读取 `.txt` / `.md` / `.docx`，运行格式、标点、空格、错别字、术语一致性与自定义规则检查；可选加载本地 ONNX 模型做上下文纠错。结果可在终端查看，也可导出 Markdown / HTML / JSON / CSV；无参数启动 TUI，全程默认离线。
 
-当前版本：**0.5.0**（Windows 优先发布；源码面向 Windows / macOS / Linux）。
+当前版本：**0.5.1**（Windows 优先发布；源码面向 Windows / macOS / Linux）。
 
 ## 特性
 
@@ -11,6 +11,7 @@
 - **定位准确**：纯文本使用 1-based `line/column`；docx 使用 `paragraph/char_offset`，不伪造行号。
 - **可扩展**：路径/文件类型分级、声明式词对与正则规则、外部检查器 JSON 协议、规则集、Rust `Rule` trait、`Exporter` trait。
 - **可选语义层**：ONNX Runtime CPU 始终可用；Windows DirectML、macOS CoreML 为可选加速，初始化/推理失败自动回退 CPU，报告记录真实设备。
+- **设备透明**：CLI 摘要、Markdown/HTML 报告和 TUI 状态栏明确显示实际执行设备（CPU 规则检查 / CPU ONNX / GPU DirectML / GPU CoreML）。
 - **误报治理**：TUI `i` 持久化忽略；CLI `ignore add/list/remove`；每次运行可用 `--ignore` 临时过滤。
 - **可取消**：`CancellationToken` + 流式进度；取消时输出部分报告并返回退出码 `3`。
 
@@ -194,7 +195,7 @@ cargo test --features semantic-directml # Windows DirectML 可用性测试
 
 - 语义化版本 `MAJOR.MINOR.PATCH`，唯一来源是 `Cargo.toml`；`build.rs` 额外嵌入 `git describe` 信息，`errator version --json` 可读取。
 - 报告数据契约独立版本化：当前 `schema_version = "1.0"`，GPU/新增导出不改变 `issues` 结构。
-- 发布以 annotated Git tag（`v0.5.0`）标记，变更记录在 [CHANGELOG.md](CHANGELOG.md)；流程见 [docs/versioning.md](docs/versioning.md)。
+- 发布以 annotated Git tag（`v0.5.1`）标记，变更记录在 [CHANGELOG.md](CHANGELOG.md)；流程见 [docs/versioning.md](docs/versioning.md)。
 - 规则 ID 一经发布不改名；废弃时保留 ID 并标记。
 
 ## 隐私与安全

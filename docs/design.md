@@ -2,13 +2,13 @@
 
 | 项目 | 内容 |
 |---|---|
-| 对应版本 | 0.5.0 |
+| 对应版本 | 0.5.1 |
 | 状态 | 已实现；Windows 首发，macOS/Linux 源码可构建 |
-| 对应发布标签 | `v0.5.0`（`3d0896a`） |
+| 对应发布标签 | `v0.5.1` |
 | 文档范围 | 核心架构、数据契约、关键流程、扩展机制、语义后端、TUI、质量与取舍 |
 | 需求来源 | 本地需求文档与扩展文档（未纳入 Git） |
 
-本文描述 Errator 0.5.0 的实际设计，而不是待实现构想。配置字段、规则、协议、命令等使用细节分别见 [configuration.md](configuration.md)、[rules.md](rules.md)、[external-checkers.md](external-checkers.md)、[semantic.md](semantic.md)。
+本文描述 Errator 0.5.1 的实际设计，而不是待实现构想。配置字段、规则、协议、命令等使用细节分别见 [configuration.md](configuration.md)、[rules.md](rules.md)、[external-checkers.md](external-checkers.md)、[semantic.md](semantic.md)。
 
 ---
 
@@ -39,6 +39,7 @@ Errator 是一个离线优先的本地文本勘误报告生成器。它把文档
 | 不绑定 Word | 直接读取 `.docx` ZIP/XML，不依赖 Office 或在线服务 |
 | 位置可追溯 | 文本使用 line/column；docx 使用 paragraph/char_offset |
 | CPU 永远可用 | 语义层可选，规则层无模型依赖；GPU 失败自动回退 |
+| 设备透明 | CLI、Markdown/HTML、TUI 明确显示 CPU/GPU 与降级状态 |
 | 人读与机读并重 | text/Markdown/HTML 与 JSON/CSV 共用同一 `Report` |
 | 可扩展 | 配置分级、声明式规则、外部检查器、规则集、trait 扩展 |
 | 操作低摩擦 | 无参数启动 TUI；文件浏览 → 检查 → 详情 → 导出闭环 |
@@ -194,7 +195,7 @@ CLI 使用 `clap` derive 定义命令树。`main` 只调用 `errator::run()`；`
 4. 调用 Engine 或管理命令；
 5. 将错误映射为退出码 2。
 
-`check` 的 stdout 只输出报告；提示、进度、写入确认全部走 stderr，保证 `--format json | jq` 等管道行为稳定。
+`check` 的 stdout 只输出报告；提示、进度、写入确认全部走 stderr，保证 `--format json | jq` 等管道行为稳定。终端摘要与 Markdown/HTML 报告都在元信息中直接显示实际计算设备（例如 `CPU（规则检查）` 或 `GPU · DirectML`），不仅记录在 JSON 的 `semantic.device` 中。
 
 ### 6.2 文档提取与定位
 
@@ -424,8 +425,8 @@ pub trait Exporter {
 
 内置实现：text、JSON、Markdown、HTML、CSV。
 
-- **Markdown**：固定一级标题、元信息、摘要表、问题代码块；无问题时明确输出“未发现问题”。
-- **HTML**：单文件内联 CSS，无外部请求，所有动态文本转义，支持明暗色。
+- **Markdown**：固定一级标题、元信息（含计算设备）、摘要表、问题代码块；无问题时明确输出“未发现问题”。
+- **HTML**：单文件内联 CSS，无外部请求，所有动态文本转义，支持明暗色，元信息含计算设备。
 - **JSON**：稳定字段 + 缩进输出。
 - **CSV**：固定表头、RFC 4180 风格转义、CRLF。
 - 文件写入使用同目录临时文件 + rename；默认拒绝覆盖，需 `--force`。
@@ -446,7 +447,7 @@ Browser ──Enter(file)──▶ Checking ──Done──▶ Report
 - 取消令牌与 worker 共享；
 - 报告页支持方向键、`f`/`0-3` 筛选、`i` 忽略、`e` 四格式导出；
 - 导出写到源文件同目录，文件名带时间戳，不覆盖；
-- 状态栏显示语义设备、忽略库位置和警告；
+- 检查页显示当前计算设备，报告页头部与状态栏显示最终实际设备（CPU/GPU 与降级状态）、忽略库位置和警告；
 - 启动/退出严格恢复 raw mode、alternate screen、光标；
 - 非 TTY 执行 `tui` 会明确报错，不尝试启动。
 
@@ -459,7 +460,7 @@ UI 渲染使用 `ratatui`；终端缓冲区测试覆盖浏览器、报告、CJK 
 ```json
 {
   "schema_version": "1.0",
-  "tool": { "name": "errator", "version": "0.5.0" },
+  "tool": { "name": "errator", "version": "0.5.1" },
   "generated_at": "2026-10-24T20:56:24+08:00",
   "source": "docs/example.md",
   "cancelled": false,
@@ -724,10 +725,10 @@ macOS CoreML 分支已实现但未在 Apple 硬件上做发布级实测，作为
 
 当前结果：
 
-- 默认特性：40 个测试通过；
-- `--features semantic-directml`：44 个测试通过；
+- 默认特性：43 个测试通过；
+- `--features semantic-directml`：47 个测试通过；
 - Windows DirectML toy 模型实机通过；
-- 打包产物 `git: v0.5.0`。
+- 打包产物 `git: v0.5.1`。
 
 ---
 
@@ -743,7 +744,7 @@ macOS CoreML 分支已实现但未在 Apple 硬件上做发布级实测，作为
 - CHANGELOG 遵循 Keep a Changelog；
 - Windows 发布脚本运行测试、构建 `semantic-directml`、收集 `DirectML.dll`、生成 SHA-256 和 zip。
 
-当前发布标签：`v0.5.0`，提交 `3d0896a`。后续纯文档提交不移动已发布 tag。
+当前发布标签：`v0.5.1`。后续纯文档提交不移动已发布 tag。
 
 ---
 
@@ -827,4 +828,4 @@ errator/
 
 ## 21. 结论
 
-Errator 0.5.0 的核心取舍是：**把确定性的规则检查与稳定的报告契约做扎实，把语义能力和 GPU 作为可替换、可降级、可观测的可选层**。这一结构允许后续在不改变 CLI、TUI 和报告 schema 的前提下增加规则、检查器、导出器和推理后端；也明确记录了当前在 CoreML、SentencePiece、取消粒度和规则集资源打包上的限制。
+Errator 0.5.1 的核心取舍是：**把确定性的规则检查与稳定的报告契约做扎实，把语义能力和 GPU 作为可替换、可降级、可观测的可选层**。这一结构允许后续在不改变 CLI、TUI 和报告 schema 的前提下增加规则、检查器、导出器和推理后端；也明确记录了当前在 CoreML、SentencePiece、取消粒度和规则集资源打包上的限制。

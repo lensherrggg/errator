@@ -1,5 +1,5 @@
 use crate::model::Report;
-use crate::report::{RenderOptions, semantic_label};
+use crate::report::{RenderOptions, execution_device_label, semantic_description};
 
 const RESET: &str = "\x1b[0m";
 const BOLD: &str = "\x1b[1m";
@@ -28,9 +28,12 @@ pub fn render(report: &Report, options: RenderOptions) -> String {
     output.push_str(&format!("生成时间：{}\n", report.generated_at));
     output.push_str(&format!("工具版本：{}\n", report.tool.version));
     output.push_str(&format!(
-        "语义检查：{}（设备：{}）\n",
-        semantic_label(&report.semantic),
-        report.semantic.device
+        "计算设备：{}\n",
+        execution_device_label(&report.semantic)
+    ));
+    output.push_str(&format!(
+        "语义检查：{}\n",
+        semantic_description(&report.semantic)
     ));
     if report.cancelled {
         output.push_str(&paint(YELLOW, "已取消：是（报告为部分结果）"));
@@ -108,11 +111,12 @@ pub fn render(report: &Report, options: RenderOptions) -> String {
 const GREEN: &str = "\x1b[32m";
 
 fn render_quiet(report: &Report) -> String {
+    let device = execution_device_label(&report.semantic);
     if report.issues.is_empty() {
-        return format!("{}：未发现问题。\n", report.source);
+        return format!("{}：未发现问题。计算设备：{device}。\n", report.source);
     }
     format!(
-        "{}：{} 个问题（error {}，warning {}，info {}）{}\n",
+        "{}：{} 个问题（error {}，warning {}，info {}）· 计算设备：{device}{}\n",
         report.source,
         report.summary.total,
         report.summary.by_severity.error,

@@ -140,13 +140,29 @@ pub fn semantic_label(info: &SemanticInfo) -> &'static str {
     }
 }
 
+/// Human-readable description of where the work actually runs. Deterministic
+/// rules always execute on the CPU; semantic inference may use a GPU EP.
+pub fn execution_device_label(info: &SemanticInfo) -> String {
+    if !info.enabled {
+        return "CPU（规则检查）".to_owned();
+    }
+    let mut label = match info.device.as_str() {
+        "dml" => "GPU · DirectML".to_owned(),
+        "coreml" => "GPU · CoreML".to_owned(),
+        "cpu" => "CPU · ONNX Runtime".to_owned(),
+        other => format!("{other} · 语义推理"),
+    };
+    if info.fallback_occurred {
+        label.push_str("（已降级）");
+    }
+    label
+}
+
 pub fn semantic_description(info: &SemanticInfo) -> String {
-    let mut value = format!(
-        "{}（设备：{}，后端：{}）",
-        semantic_label(info),
-        info.device,
-        info.backend
-    );
+    if !info.enabled {
+        return "关闭（仅规则检查）".to_owned();
+    }
+    let mut value = format!("{}（后端：{}）", semantic_label(info), info.backend);
     if info.fallback_occurred {
         value.push_str("，已降级");
     }
@@ -190,6 +206,38 @@ mod tests {
             confidence: 1.0,
             offset: 0,
         }
+    }
+
+    #[test]
+    fn device_labels_make_cpu_and_gpu_explicit() {
+        let disabled = SemanticInfo::disabled();
+        assert_eq!(execution_device_label(&disabled), "CPU（规则检查）");
+        assert_eq!(semantic_description(&disabled), "关闭（仅规则检查）");
+
+        let dml = SemanticInfo {
+            enabled: true,
+            device: "dml".to_owned(),
+            backend: "onnxruntime".to_owned(),
+            fallback_occurred: false,
+        };
+        assert_eq!(execution_device_label(&dml), "GPU · DirectML");
+
+        let cpu = SemanticInfo {
+            enabled: true,
+            device: "cpu".to_owned(),
+            backend: "onnxruntime".to_owned(),
+            fallback_occurred: true,
+        };
+        assert_eq!(execution_device_label(&cpu), "CPU · ONNX Runtime（已降级）");
+    }
+
+    #[test]
+    fn text_and_markdown_show_the_execution_device() {
+        let report = sample_report(vec![sample_issue()]);
+        let text = render(&report, OutputFormat::Text, RenderOptions::default()).unwrap();
+        assert!(text.contains("计算设备：CPU（规则检查）"));
+        let markdown = render(&report, OutputFormat::Markdown, RenderOptions::default()).unwrap();
+        assert!(markdown.contains("- **计算设备**：CPU（规则检查）"));
     }
 
     #[test]

@@ -50,15 +50,17 @@
 `scripts/package-windows.ps1` 生成：
 
 ```text
-dist/errator-0.5.0-windows-x86_64/
+dist/errator-0.5.1-windows-x86_64/
   errator.exe
   DirectML.dll          # 仅在启用 semantic-directml 且构建产物存在时
   README.md
   CHANGELOG.md
   LICENSE
+  THIRD_PARTY_NOTICES.md
+  docs/                 # 设计、配置、规则、协议、模型与版本说明
   VERSION.txt
-errator-0.5.0-windows-x86_64.zip
-errator-0.5.0-windows-x86_64.zip.sha256
+errator-0.5.1-windows-x86_64.zip
+errator-0.5.1-windows-x86_64.zip.sha256
 ```
 
 包内 `VERSION.txt` 由 `errator version` 生成，包含 Git 描述、平台和 schema 版本。

@@ -36,7 +36,7 @@ mod ui {
     use crate::ignore::IgnoreStore;
     use crate::model::{Issue, Report, Severity};
     use crate::paths;
-    use crate::report::{self, OutputFormat, RenderOptions, semantic_label};
+    use crate::report::{self, OutputFormat, RenderOptions, execution_device_label};
     use crate::semantic::{DeviceRequest, SemanticMode};
 
     const TICK: Duration = Duration::from_millis(120);
@@ -943,11 +943,10 @@ mod ui {
                     Style::default().fg(Color::DarkGray),
                 )),
                 Line::from(Span::styled(
-                    "语义设备：".to_owned()
-                        + check
-                            .semantic_device
-                            .as_deref()
-                            .unwrap_or("规则检查（无语义层）"),
+                    format!(
+                        "计算设备：{}",
+                        checking_device_label(check.semantic_device.as_deref())
+                    ),
                     Style::default().fg(Color::DarkGray),
                 )),
             ];
@@ -996,11 +995,11 @@ mod ui {
                     ),
                     Span::styled(
                         format!(
-                            "error {} · warning {} · info {} · 语义：{}",
+                            "error {} · warning {} · info {} · 设备：{}",
                             report.report.summary.by_severity.error,
                             report.report.summary.by_severity.warning,
                             report.report.summary.by_severity.info,
-                            semantic_label(&report.report.semantic)
+                            execution_device_label(&report.report.semantic)
                         ),
                         Style::default().fg(Color::Gray),
                     ),
@@ -1124,12 +1123,8 @@ mod ui {
             } else {
                 footer_lines.push(Line::from(Span::styled(
                     format!(
-                        "语义设备：{} · 忽略库：{}",
-                        if report.report.semantic.enabled {
-                            report.report.semantic.device.as_str()
-                        } else {
-                            "关闭"
-                        },
+                        "计算设备：{} · 忽略库：{}",
+                        execution_device_label(&report.report.semantic),
                         paths::ignores_path()
                             .map(|path| path.display().to_string())
                             .unwrap_or_else(|_| "~/.errator/ignores.json".to_owned())
@@ -1347,6 +1342,15 @@ mod ui {
         value.replace(['\r', '\n', '\t'], " ")
     }
 
+    fn checking_device_label(device: Option<&str>) -> &'static str {
+        match device {
+            Some("dml") => "GPU · DirectML（语义推理）",
+            Some("coreml") => "GPU · CoreML（语义推理）",
+            Some("cpu") => "CPU · ONNX Runtime（语义推理）",
+            _ => "CPU（规则检查，未启用语义层）",
+        }
+    }
+
     fn truncate_width(value: &str, max_width: usize) -> String {
         if value.width() <= max_width {
             return value.to_owned();
@@ -1492,6 +1496,15 @@ mod ui {
             assert!(compact.contains("勘误报告"), "rendered buffer:\n{text}");
             assert!(compact.contains("另一个错误"));
             assert!(compact.contains("筛选"));
+            assert!(compact.contains("CPU"), "rendered buffer:\n{text}");
+        }
+
+        #[test]
+        fn checking_device_labels_name_the_hardware() {
+            assert!(checking_device_label(None).contains("CPU"));
+            assert!(checking_device_label(Some("cpu")).contains("CPU"));
+            assert!(checking_device_label(Some("dml")).contains("GPU"));
+            assert!(checking_device_label(Some("coreml")).contains("GPU"));
         }
 
         #[test]
