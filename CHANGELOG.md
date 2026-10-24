@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- README 重写为完整使用手册：安装/验证、TUI 操作、全部 CLI 命令、配置示例、报告格式、语义设备、CI 集成、FAQ 与故障排查。
+
 ### Planned
 
 - SentencePiece tokenizer support for semantic models.
