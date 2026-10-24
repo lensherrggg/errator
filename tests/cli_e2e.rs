@@ -226,6 +226,34 @@ fn persistent_ignore_filters_future_checks() {
 }
 
 #[test]
+fn ignore_clear_removes_all_persisted_entries() {
+    let temp = TempDir::new().unwrap();
+    let home = temp.path().join("home");
+    for (rule, text) in [
+        ("CJK_SPACE_MISSING", "使用Rust开发"),
+        ("TYPO_CONFUSION", "因该"),
+    ] {
+        let output = command(&home)
+            .args(["ignore", "add", "--rule", rule, "--text", text])
+            .output()
+            .unwrap();
+        assert!(output.status.success());
+    }
+
+    let cleared = command(&home).args(["ignore", "clear"]).output().unwrap();
+    assert!(
+        cleared.status.success(),
+        "stderr={}",
+        String::from_utf8_lossy(&cleared.stderr)
+    );
+    assert!(String::from_utf8_lossy(&cleared.stdout).contains("已清空 2 条忽略项"));
+
+    let listed = command(&home).args(["ignore", "list"]).output().unwrap();
+    assert!(listed.status.success());
+    assert!(String::from_utf8_lossy(&listed.stdout).contains("忽略库为空"));
+}
+
+#[test]
 fn directory_check_aggregates_files_without_changing_issue_shape() {
     let temp = TempDir::new().unwrap();
     let home = temp.path().join("home");

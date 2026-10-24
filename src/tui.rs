@@ -165,6 +165,7 @@ mod ui {
         }
     }
 
+    #[derive(Clone)]
     struct BrowserEntry {
         path: PathBuf,
         name: String,
@@ -174,18 +175,26 @@ mod ui {
 
     struct Browser {
         current_dir: PathBuf,
+        all_entries: Vec<BrowserEntry>,
         entries: Vec<BrowserEntry>,
         selected: usize,
         status: String,
+        filter: String,
+        search_mode: bool,
+        search_saved_filter: String,
     }
 
     impl Browser {
         fn new(directory: PathBuf) -> Result<Self> {
             let mut browser = Self {
                 current_dir: directory,
+                all_entries: Vec::new(),
                 entries: Vec::new(),
                 selected: 0,
                 status: String::new(),
+                filter: String::new(),
+                search_mode: false,
+                search_saved_filter: String::new(),
             };
             browser.load(&browser.current_dir.clone())?;
             Ok(browser)
@@ -239,10 +248,80 @@ mod ui {
             entries.append(&mut directories);
             entries.append(&mut files);
             self.current_dir = directory;
-            self.entries = entries;
-            self.selected = 0;
-            self.status = format!("{} 个条目", self.entries.len());
+            self.all_entries = entries;
+            self.filter.clear();
+            self.search_mode = false;
+            self.search_saved_filter.clear();
+            self.apply_filter();
+            self.status = format!("{} 个条目", self.match_count());
             Ok(())
+        }
+
+        fn apply_filter(&mut self) {
+            let needle = self.filter.to_lowercase();
+            self.entries = self
+                .all_entries
+                .iter()
+                .filter(|entry| {
+                    entry.is_parent
+                        || needle.is_empty()
+                        || entry.name.to_lowercase().contains(&needle)
+                })
+                .cloned()
+                .collect();
+            self.selected = if needle.is_empty() {
+                0
+            } else {
+                self.entries
+                    .iter()
+                    .position(|entry| !entry.is_parent)
+                    .unwrap_or(0)
+            };
+        }
+
+        fn begin_search(&mut self) {
+            self.search_mode = true;
+            self.search_saved_filter = self.filter.clone();
+        }
+
+        fn update_search(&mut self, query: String) {
+            self.filter = query;
+            self.apply_filter();
+        }
+
+        fn commit_search(&mut self) {
+            self.search_mode = false;
+        }
+
+        fn cancel_search(&mut self) {
+            self.search_mode = false;
+            self.filter = self.search_saved_filter.clone();
+            self.apply_filter();
+        }
+
+        fn clear_search(&mut self) {
+            self.search_mode = false;
+            self.filter.clear();
+            self.apply_filter();
+        }
+
+        fn match_count(&self) -> usize {
+            self.entries.iter().filter(|entry| !entry.is_parent).count()
+        }
+
+        fn total_count(&self) -> usize {
+            self.all_entries
+                .iter()
+                .filter(|entry| !entry.is_parent)
+                .count()
+        }
+
+        fn filter_status(&self) -> String {
+            if self.filter.is_empty() {
+                self.status.clone()
+            } else {
+                format!("筛选：{} · 匹配 {} 个条目", self.filter, self.match_count())
+            }
         }
 
         fn selected_entry(&self) -> Option<&BrowserEntry> {
@@ -274,6 +353,8 @@ mod ui {
         filtered: Vec<usize>,
         selected: usize,
         filter: IssueFilter,
+        categories: Vec<String>,
+        category_filter: Option<String>,
         list_state: ListState,
         detail_scroll: u16,
         status: String,
@@ -281,6 +362,17 @@ mod ui {
 
     impl ReportView {
         fn new(report: Report, source_path: PathBuf, warnings: Vec<String>) -> Self {
+            let mut counts = std::collections::BTreeMap::new();
+            for issue in &report.issues {
+                *counts.entry(issue.category.clone()).or_insert(0usize) += 1;
+            }
+            let mut categories: Vec<(String, usize)> = counts.into_iter().collect();
+            categories
+                .sort_by(|left, right| right.1.cmp(&left.1).then_with(|| left.0.cmp(&right.0)));
+            let categories = categories
+                .into_iter()
+                .map(|(category, _)| category)
+                .collect();
             let mut view = Self {
                 report,
                 source_path,
@@ -288,6 +380,8 @@ mod ui {
                 filtered: Vec::new(),
                 selected: 0,
                 filter: IssueFilter::All,
+                categories,
+                category_filter: None,
                 list_state: ListState::default(),
                 detail_scroll: 0,
                 status: String::new(),
@@ -309,7 +403,14 @@ mod ui {
                 .issues
                 .iter()
                 .enumerate()
-                .filter(|(_, issue)| self.filter.matches(issue.severity))
+                .filter(|(_, issue)| {
+                    self.filter.matches(issue.severity)
+                        && self
+                            .category_filter
+                            .as_ref()
+                            .map(|category| &issue.category == category)
+                            .unwrap_or(true)
+                })
                 .map(|(index, _)| index)
                 .collect();
             if self.filtered.is_empty() {
@@ -324,6 +425,35 @@ mod ui {
 
         fn set_filter(&mut self, filter: IssueFilter) {
             self.filter = filter;
+            self.rebuild();
+        }
+
+        fn category_label(&self) -> &str {
+            self.category_filter.as_deref().unwrap_or("全部")
+        }
+
+        fn cycle_category(&mut self) {
+            if self.categories.is_empty() {
+                return;
+            }
+            let next = match &self.category_filter {
+                None => Some(self.categories[0].clone()),
+                Some(current) => {
+                    let position = self
+                        .categories
+                        .iter()
+                        .position(|category| category == current)
+                        .unwrap_or(self.categories.len() - 1);
+                    self.categories.get(position + 1).cloned()
+                }
+            };
+            self.category_filter = next;
+            self.rebuild();
+        }
+
+        #[cfg(test)]
+        fn set_category_filter(&mut self, category: Option<String>) {
+            self.category_filter = category;
             self.rebuild();
         }
 
@@ -657,9 +787,43 @@ mod ui {
         }
 
         fn handle_browser_key(&mut self, key: KeyEvent) -> Result<()> {
+            if self.browser.search_mode {
+                if key.modifiers.contains(KeyModifiers::CONTROL) {
+                    if key.code == KeyCode::Char('u') {
+                        self.browser.update_search(String::new());
+                    }
+                    return Ok(());
+                }
+                match key.code {
+                    KeyCode::Enter => self.browser.commit_search(),
+                    KeyCode::Esc => self.browser.cancel_search(),
+                    KeyCode::Backspace => {
+                        let mut query = self.browser.filter.clone();
+                        query.pop();
+                        self.browser.update_search(query);
+                    }
+                    KeyCode::Char(character) => {
+                        let mut query = self.browser.filter.clone();
+                        query.push(character);
+                        self.browser.update_search(query);
+                    }
+                    KeyCode::Up => self.browser.move_selection(-1),
+                    KeyCode::Down => self.browser.move_selection(1),
+                    _ => {}
+                }
+                return Ok(());
+            }
+
             match key.code {
                 KeyCode::Char('q') => self.should_quit = true,
-                KeyCode::Esc => self.should_quit = true,
+                KeyCode::Esc => {
+                    if self.browser.filter.is_empty() {
+                        self.should_quit = true;
+                    } else {
+                        self.browser.clear_search();
+                    }
+                }
+                KeyCode::Char('/') => self.browser.begin_search(),
                 KeyCode::Char('?') => self.help = true,
                 KeyCode::Down | KeyCode::Char('j') => self.browser.move_selection(1),
                 KeyCode::Up | KeyCode::Char('k') => self.browser.move_selection(-1),
@@ -722,6 +886,11 @@ mod ui {
                 KeyCode::Char('f') => {
                     if let Some(report) = self.report.as_mut() {
                         report.set_filter(report.filter.next());
+                    }
+                }
+                KeyCode::Char('t') => {
+                    if let Some(report) = self.report.as_mut() {
+                        report.cycle_category();
                     }
                 }
                 KeyCode::Char('0') => {
@@ -829,46 +998,61 @@ mod ui {
             );
             frame.render_widget(header, chunks[0]);
 
-            let items: Vec<ListItem> = self
-                .browser
-                .entries
-                .iter()
-                .map(|entry| {
-                    let (prefix, style) = if entry.is_parent {
-                        ("[..] ", Style::default().fg(Color::DarkGray))
-                    } else if entry.is_dir {
-                        ("[DIR] ", Style::default().fg(Color::Cyan))
-                    } else {
-                        let label = entry
-                            .path
-                            .extension()
-                            .and_then(|extension| extension.to_str())
-                            .map(|extension| extension.to_ascii_uppercase())
-                            .unwrap_or_default();
-                        let style = if label == "DOCX" {
-                            Style::default().fg(Color::Blue)
+            let items: Vec<ListItem> = if self.browser.entries.is_empty() {
+                vec![ListItem::new(Line::from(Span::styled(
+                    "没有匹配项：按 Esc 清除筛选",
+                    Style::default().fg(Color::DarkGray),
+                )))]
+            } else {
+                self.browser
+                    .entries
+                    .iter()
+                    .map(|entry| {
+                        let (prefix, style) = if entry.is_parent {
+                            ("[..] ", Style::default().fg(Color::DarkGray))
+                        } else if entry.is_dir {
+                            ("[DIR] ", Style::default().fg(Color::Cyan))
                         } else {
-                            Style::default().fg(Color::Reset)
+                            let label = entry
+                                .path
+                                .extension()
+                                .and_then(|extension| extension.to_str())
+                                .map(|extension| extension.to_ascii_uppercase())
+                                .unwrap_or_default();
+                            let style = if label == "DOCX" {
+                                Style::default().fg(Color::Blue)
+                            } else {
+                                Style::default().fg(Color::Reset)
+                            };
+                            return ListItem::new(Line::from(vec![
+                                Span::styled("[", style),
+                                Span::styled(format!("{label:<4}"), style),
+                                Span::styled("] ", style),
+                                Span::raw(entry.name.clone()),
+                            ]));
                         };
-                        return ListItem::new(Line::from(vec![
-                            Span::styled("[", style),
-                            Span::styled(format!("{label:<4}"), style),
-                            Span::styled("] ", style),
-                            Span::raw(entry.name.clone()),
-                        ]));
-                    };
-                    ListItem::new(Line::from(vec![
-                        Span::styled(prefix, style),
-                        Span::styled(entry.name.clone(), style),
-                    ]))
-                })
-                .collect();
+                        ListItem::new(Line::from(vec![
+                            Span::styled(prefix, style),
+                            Span::styled(entry.name.clone(), style),
+                        ]))
+                    })
+                    .collect()
+            };
+            let list_title = if self.browser.filter.is_empty() {
+                format!(" 文件（{} 个条目） ", self.browser.total_count())
+            } else {
+                format!(
+                    " 文件（匹配 {} 个，共 {} 个） ",
+                    self.browser.match_count(),
+                    self.browser.total_count()
+                )
+            };
             let list = List::new(items)
                 .block(
                     Block::default()
                         .borders(Borders::ALL)
                         .border_type(BorderType::Rounded)
-                        .title(format!(" 文件（{} 个条目） ", self.browser.entries.len())),
+                        .title(list_title),
                 )
                 .highlight_style(
                     Style::default()
@@ -885,17 +1069,33 @@ mod ui {
                 });
             frame.render_stateful_widget(list, chunks[1], &mut state);
 
-            let footer = Paragraph::new(Text::from(vec![
-                Line::from(Span::styled(
-                    self.browser.status.clone(),
-                    Style::default().fg(Color::DarkGray),
-                )),
-                Line::from(Span::styled(
-                    "↑/↓ 选择  Enter 打开  Backspace 上级  r 刷新  ? 帮助  q 退出",
-                    Style::default().fg(Color::Gray),
-                )),
-            ]))
-            .block(
+            let footer_lines = if self.browser.search_mode {
+                vec![
+                    Line::from(vec![
+                        Span::styled("搜索：", Style::default().fg(Color::DarkGray)),
+                        Span::styled(
+                            format!("{}_", self.browser.filter),
+                            Style::default().fg(Color::Cyan),
+                        ),
+                    ]),
+                    Line::from(Span::styled(
+                        "输入关键字  Enter 应用  Esc 取消  Backspace 删除  Ctrl+U 清空  ↑/↓ 移动",
+                        Style::default().fg(Color::Gray),
+                    )),
+                ]
+            } else {
+                vec![
+                    Line::from(Span::styled(
+                        self.browser.filter_status(),
+                        Style::default().fg(Color::DarkGray),
+                    )),
+                    Line::from(Span::styled(
+                        "↑/↓ 选择  Enter 打开  / 搜索  Backspace 上级  r 刷新  ? 帮助  q 退出",
+                        Style::default().fg(Color::Gray),
+                    )),
+                ]
+            };
+            let footer = Paragraph::new(Text::from(footer_lines)).block(
                 Block::default()
                     .borders(Borders::ALL)
                     .border_type(BorderType::Rounded),
@@ -1008,8 +1208,9 @@ mod ui {
                 Line::from(Span::styled(source_line, Style::default().fg(Color::Gray))),
                 Line::from(Span::styled(
                     format!(
-                        "筛选：{}（f 切换，0/1/2/3 直选）  显示 {}/{} 条{}",
+                        "筛选：{} · 类型：{}（f/t 切换）  显示 {}/{} 条{}",
                         report.filter.label(),
+                        report.category_label(),
                         report.filtered.len(),
                         report.report.issues.len(),
                         if report.report.cancelled {
@@ -1107,7 +1308,7 @@ mod ui {
             frame.render_widget(detail, panes[1]);
 
             let mut footer_lines = vec![Line::from(Span::styled(
-                "↑/↓ 选择  i 忽略并持久化  e 导出  f 筛选  Esc 返回  ? 帮助  q 退出",
+                "↑/↓ 选择  i 忽略并持久化  e 导出  f 级别  t 类型  Esc 返回  ? 帮助  q 退出",
                 Style::default().fg(Color::Gray),
             ))];
             let mut detail = format!("计算设备：{device}");
@@ -1188,6 +1389,10 @@ mod ui {
                         .add_modifier(Modifier::BOLD),
                 ),
             ]),
+            Line::from(vec![
+                Span::styled("类型：", Style::default().fg(Color::DarkGray)),
+                Span::raw(issue.category.clone()),
+            ]),
             Line::from(""),
             Line::from(vec![
                 Span::styled("位置：", Style::default().fg(Color::DarkGray)),
@@ -1260,11 +1465,13 @@ mod ui {
             Line::from("  ↑/↓ 或 j/k    移动选择"),
             Line::from("  Enter/→       打开目录或开始检查"),
             Line::from("  Backspace/←   返回上级目录"),
+            Line::from("  /             按文件名搜索当前目录"),
             Line::from("  r             刷新目录"),
             Line::from(""),
             Line::from(Span::styled("报告", Style::default().fg(Color::Yellow))),
             Line::from("  ↑/↓ 或 j/k    切换问题"),
-            Line::from("  f / 0 / 1 / 2 / 3  筛选（全部/error/warning/info）"),
+            Line::from("  f / 0 / 1 / 2 / 3  筛选级别（全部/error/warning/info）"),
+            Line::from("  t             切换问题类型筛选（category）"),
             Line::from("  i             忽略误报并持久化"),
             Line::from("  e             导出 Markdown / HTML / JSON / CSV"),
             Line::from("  Esc           返回文件浏览"),
@@ -1461,6 +1668,77 @@ mod ui {
         }
 
         #[test]
+        fn browser_search_filters_the_current_directory() {
+            let temp = TempDir::new().unwrap();
+            fs::write(temp.path().join("alpha.md"), "a").unwrap();
+            fs::write(temp.path().join("beta.md"), "b").unwrap();
+            fs::create_dir(temp.path().join("alpha-dir")).unwrap();
+            let mut app = app_for(temp.path());
+
+            app.handle_key(KeyEvent::new(KeyCode::Char('/'), KeyModifiers::NONE))
+                .unwrap();
+            assert!(app.browser.search_mode);
+            for character in "alpha".chars() {
+                app.handle_key(KeyEvent::new(KeyCode::Char(character), KeyModifiers::NONE))
+                    .unwrap();
+            }
+            assert_eq!(app.browser.filter, "alpha");
+            assert!(
+                app.browser
+                    .entries
+                    .iter()
+                    .any(|entry| entry.name == "alpha.md")
+            );
+            assert!(
+                app.browser
+                    .entries
+                    .iter()
+                    .any(|entry| entry.name == "alpha-dir")
+            );
+            assert!(
+                !app.browser
+                    .entries
+                    .iter()
+                    .any(|entry| entry.name == "beta.md")
+            );
+
+            let mut terminal = Terminal::new(TestBackend::new(120, 32)).unwrap();
+            terminal.draw(|frame| app.draw(frame)).unwrap();
+            let text = text_of(&terminal);
+            let compact: String = text
+                .chars()
+                .filter(|character| !character.is_whitespace())
+                .collect();
+            assert!(compact.contains("搜索：alpha"), "rendered buffer:\n{text}");
+
+            app.handle_key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE))
+                .unwrap();
+            assert!(!app.browser.search_mode);
+            assert!(app.browser.filter.is_empty());
+            assert!(
+                app.browser
+                    .entries
+                    .iter()
+                    .any(|entry| entry.name == "beta.md")
+            );
+
+            app.handle_key(KeyEvent::new(KeyCode::Char('/'), KeyModifiers::NONE))
+                .unwrap();
+            for character in "beta".chars() {
+                app.handle_key(KeyEvent::new(KeyCode::Char(character), KeyModifiers::NONE))
+                    .unwrap();
+            }
+            app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE))
+                .unwrap();
+            assert!(!app.browser.search_mode);
+            assert_eq!(app.browser.filter, "beta");
+            app.handle_key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE))
+                .unwrap();
+            assert!(app.browser.filter.is_empty());
+            assert!(!app.should_quit);
+        }
+
+        #[test]
         fn report_view_filters_and_draws_details() {
             let temp = TempDir::new().unwrap();
             let source = temp.path().join("doc.md");
@@ -1474,6 +1752,7 @@ mod ui {
                     Issue {
                         severity: Severity::Error,
                         rule_id: "OTHER".to_owned(),
+                        category: "grammar".to_owned(),
                         ..sample_issue("另一个错误")
                     },
                 ],
@@ -1486,6 +1765,21 @@ mod ui {
             view.set_filter(IssueFilter::All);
             view.move_selection(1);
             assert_eq!(view.selected, 1);
+            assert_eq!(view.categories, vec!["grammar", "spacing"]);
+            view.cycle_category();
+            assert_eq!(view.category_label(), "grammar");
+            assert_eq!(view.filtered.len(), 1);
+            view.cycle_category();
+            assert_eq!(view.category_label(), "spacing");
+            assert_eq!(view.filtered.len(), 1);
+            view.cycle_category();
+            assert_eq!(view.category_label(), "全部");
+            assert_eq!(view.filtered.len(), 2);
+            view.set_category_filter(Some("spacing".to_owned()));
+            assert_eq!(view.filtered.len(), 1);
+            view.set_category_filter(None);
+            view.selected = 1;
+            view.list_state.select(Some(1));
             app.report = Some(view);
             app.screen = Screen::Report;
             let mut terminal = Terminal::new(TestBackend::new(120, 38)).unwrap();

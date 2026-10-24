@@ -4,7 +4,15 @@ use errator::cancel::CancellationToken;
 use errator::config::Config;
 use errator::engine::{CheckOptions, Engine};
 use errator::ignore::IgnoreStore;
+use errator::semantic::SemanticMode;
 use tempfile::TempDir;
+
+fn options() -> CheckOptions {
+    CheckOptions {
+        semantic_mode: SemanticMode::Off,
+        ..CheckOptions::default()
+    }
+}
 
 #[test]
 fn pre_cancelled_check_returns_partial_report_and_exit_three() {
@@ -16,9 +24,7 @@ fn pre_cancelled_check_returns_partial_report_and_exit_three() {
     let token = CancellationToken::new();
     token.cancel();
 
-    let outcome = engine
-        .run(&source, &CheckOptions::default(), &token, |_| {})
-        .unwrap();
+    let outcome = engine.run(&source, &options(), &token, |_| {}).unwrap();
     assert!(outcome.cancelled);
     assert!(outcome.report.cancelled);
     assert_eq!(outcome.exit_code(), 3);
@@ -33,17 +39,8 @@ fn missing_input_and_empty_directory_are_runtime_errors() {
     let token = CancellationToken::new();
     assert!(
         engine
-            .run(
-                &temp.path().join("missing.txt"),
-                &CheckOptions::default(),
-                &token,
-                |_| {}
-            )
+            .run(&temp.path().join("missing.txt"), &options(), &token, |_| {})
             .is_err()
     );
-    assert!(
-        engine
-            .run(temp.path(), &CheckOptions::default(), &token, |_| {})
-            .is_err()
-    );
+    assert!(engine.run(temp.path(), &options(), &token, |_| {}).is_err());
 }

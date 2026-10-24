@@ -11,6 +11,15 @@
 - Template-based custom exporters.
 - Ruleset asset bundling for installed rulesets.
 
+## [0.6.0] - 2026-10-24
+
+### Added
+
+- `errator ignore clear`：一次清空全部持久化忽略项，并显示删除数量。
+- TUI 文件浏览页按 `/` 按关键字实时筛选当前目录；支持 Enter 应用、Esc 取消、Backspace 删除、Ctrl+U 清空、筛选结果内方向键移动。
+- TUI 报告页按 `t` 按问题类型（category）筛选，可与 error/warning/info 级别筛选叠加；顶部显示当前类型与过滤后条数。
+- README 补齐两个新功能的详细操作说明。
+
 ## [0.5.2] - 2026-10-24
 
 ### Fixed

@@ -119,6 +119,14 @@ impl IgnoreStore {
         Ok(Some(removed))
     }
 
+    /// Remove every persisted ignore. Returns the number of entries removed.
+    pub fn clear(&mut self) -> Result<usize> {
+        let count = self.entries.len();
+        self.entries.clear();
+        self.save()?;
+        Ok(count)
+    }
+
     pub fn matches(&self, issue: &Issue) -> bool {
         self.entries
             .iter()

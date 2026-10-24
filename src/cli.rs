@@ -215,6 +215,8 @@ enum IgnoreCommand {
         /// 忽略项 ID
         id: String,
     },
+    /// 清空全部持久化忽略项
+    Clear,
 }
 
 #[derive(Debug, Subcommand)]
@@ -610,6 +612,16 @@ fn run_ignore(command: IgnoreCommand) -> Result<i32> {
                 }
                 None => bail!("未找到忽略项：{id}"),
             }
+        }
+        IgnoreCommand::Clear => {
+            let mut store = IgnoreStore::load_default()?;
+            let removed = store.clear()?;
+            if removed == 0 {
+                println!("忽略库已为空。");
+            } else {
+                println!("已清空 {removed} 条忽略项。");
+            }
+            println!("忽略库：{}", store.path().display());
         }
     }
     Ok(0)

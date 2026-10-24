@@ -2,7 +2,7 @@
 
 本地文本勘误报告生成器。读取 `.txt` / `.md` / `.docx`，运行格式、标点、空格、错别字、术语一致性与自定义规则检查；可选加载本地 ONNX 模型做上下文纠错。结果可在终端查看，也可导出 Markdown / HTML / JSON / CSV；无参数启动 TUI，全程默认离线。
 
-当前版本：**0.5.2**（Windows 优先发布；源码面向 Windows / macOS / Linux）。
+当前版本：**0.6.0**（Windows 优先发布；源码面向 Windows / macOS / Linux）。
 
 ## 目录
 
@@ -31,7 +31,8 @@
 - **可扩展**：路径/文件类型分级、声明式词对与正则规则、外部检查器 JSON 协议、规则集、Rust `Rule` trait、`Exporter` trait。
 - **可选语义层**：ONNX Runtime CPU 始终可用；Windows DirectML、macOS CoreML 为可选加速，初始化/推理失败自动回退 CPU，报告记录真实设备。
 - **设备透明**：CLI 摘要、Markdown/HTML 报告和 TUI 状态栏明确显示实际执行设备（CPU 规则检查 / CPU ONNX / GPU DirectML / GPU CoreML）。
-- **误报治理**：TUI `i` 持久化忽略；CLI `ignore add/list/remove`；每次运行可用 `--ignore` 临时过滤。
+- **误报治理**：TUI `i` 持久化忽略；CLI `ignore add/list/remove/clear`；每次运行可用 `--ignore` 临时过滤。
+- **快速定位**：TUI 文件浏览页按 `/` 按文件名筛选当前目录；报告页按 `t` 在问题类型（category）之间筛选。
 - **可取消**：`CancellationToken` + 流式进度；取消时输出部分报告并返回退出码 `3`。
 
 ---
@@ -58,8 +59,8 @@ docs/
 在 PowerShell 中：
 
 ```powershell
-# 假设解压到 D:\tools\errator-0.5.2-windows-x86_64
-cd D:\tools\errator-0.5.2-windows-x86_64
+# 假设解压到 D:\tools\errator-0.6.0-windows-x86_64
+cd D:\tools\errator-0.6.0-windows-x86_64
 
 .\errator.exe version
 .\errator.exe check .\doc.md
@@ -68,7 +69,7 @@ cd D:\tools\errator-0.5.2-windows-x86_64
 可选：仅当前 PowerShell 会话加入 PATH：
 
 ```powershell
-$env:Path += ";D:\tools\errator-0.5.2-windows-x86_64"
+$env:Path += ";D:\tools\errator-0.6.0-windows-x86_64"
 errator check .\doc.md
 ```
 
@@ -77,7 +78,7 @@ errator check .\doc.md
 校验下载包（PowerShell）：
 
 ```powershell
-Get-FileHash .\errator-0.5.2-windows-x86_64.zip -Algorithm SHA256
+Get-FileHash .\errator-0.6.0-windows-x86_64.zip -Algorithm SHA256
 # 与 .sha256 文件中的值比较
 ```
 
@@ -182,7 +183,7 @@ errator check doc.md
 Errator 勘误报告
 源文件：doc.md
 生成时间：2026-10-24T21:06:39+08:00
-工具版本：0.5.2
+工具版本：0.6.0
 计算设备：CPU（规则检查）
 语义检查：关闭（仅规则检查）
 
@@ -318,11 +319,24 @@ errator tui ./docs --no-gpu
 | `Home` / `End` 或 `g` / `G` | 跳到首/尾 |
 | `Enter` / `→` | 打开目录或开始检查文件 |
 | `Backspace` / `←` | 返回上级目录 |
+| `/` | 按文件名筛选当前目录 |
 | `r` | 刷新当前目录 |
 | `?` | 帮助 |
 | `q` / `Esc` | 退出 |
 
 浏览器只显示目录和受支持的文件；`[DIR]` 表示目录，`[MD ]` / `[TXT]` / `[DOCX]` 表示可检查文件。
+
+#### 目录关键字筛选
+
+在文件浏览页按 `/` 进入搜索状态：
+
+- 输入关键字时，列表会实时按文件名/目录名做**不区分大小写的包含匹配**；
+- `Enter` 保留当前筛选并退出输入状态；
+- `Esc` 取消本次编辑，恢复进入搜索前的筛选；
+- `Backspace` 删除一个字符，`Ctrl+U` 清空输入；
+- 筛选状态下按 `↑/↓` 可在结果中移动；
+- 筛选生效时再按 `Esc` 清除筛选；再按一次退出 TUI；
+- 进入其他目录或刷新会清除筛选。
 
 ### 3.3 检查与报告页
 
@@ -345,13 +359,16 @@ errator tui ./docs --no-gpu
 | `↑` / `↓` 或 `k` / `j` | 切换问题 |
 | `PageUp` / `PageDown` | 快速移动 |
 | `Home` / `End` 或 `g` / `G` | 首/尾问题 |
-| `f` | 循环筛选：全部 → error → warning → info |
+| `f` | 循环筛选级别：全部 → error → warning → info |
 | `0` / `1` / `2` / `3` | 直接筛选全部 / error / warning / info |
+| `t` | 循环筛选问题类型（category），如 `spacing`、`punctuation`、`semantic` |
 | `i` | 忽略当前误报并持久化 |
 | `e` | 打开导出菜单 |
 | `Esc` | 返回文件浏览 |
 | `?` | 帮助 |
 | `q` | 退出 |
+
+等级筛选与类型筛选可叠加；顶部会显示当前 `筛选：级别 · 类型：category` 和显示条数。类型筛选按问题数量排序，`t` 依次切换“全部类型 → 各类型 → 全部类型”。
 
 ### 3.4 忽略误报
 
@@ -367,6 +384,7 @@ errator tui ./docs --no-gpu
 errator ignore list
 errator ignore list --format json
 errator ignore remove <id>
+errator ignore clear
 ```
 
 ### 3.5 导出报告
@@ -471,11 +489,13 @@ errator ignore add --rule CUSTOM_LOGIN --text "登陆" --note "产品名"
 errator ignore list
 errator ignore list --format json
 errator ignore remove <id>
+errator ignore clear
 ```
 
 - `add` 至少需要 `--rule` 和 `--text`。
 - 持久化匹配使用精确的 `rule_id + original`。
 - `--note` 只用于说明。
+- `clear` 清空全部持久化忽略，并显示删除条目数。
 - TUI 的 `i` 等价于 `ignore add`。
 - 对外部检查器/语义规则 ID 也可添加；若 ID 不在内置注册表中，会给出提示但允许保存。
 
@@ -703,7 +723,7 @@ PROJECT = "docs"
 ```json
 {
   "schema_version": "1.0",
-  "tool": { "name": "errator", "version": "0.5.2" },
+  "tool": { "name": "errator", "version": "0.6.0" },
   "generated_at": "2026-10-24T21:06:39+08:00",
   "source": "doc.md",
   "cancelled": false,
@@ -857,7 +877,7 @@ GPU 初始化或推理失败后：
 - DirectML 需要 Windows + DirectX 12 GPU，并要求 `DirectML.dll` 与 exe 同目录。
 - CoreML 的动态形状/INT8 支持有限，失败自动回退 CPU。
 - 单次 ONNX 推理不可在算子内部抢占，取消在分块之间生效。
-- v0.5 仅支持 BERT WordPiece，不支持 SentencePiece。
+- 当前版本仅支持 BERT WordPiece，不支持 SentencePiece。
 
 完整说明见 [docs/semantic.md](docs/semantic.md)。
 
@@ -944,7 +964,7 @@ TUI 需要交互式终端；非 TTY 环境请使用 errator check
 把发布目录加入当前 PATH：
 
 ```powershell
-$env:Path += ";D:\tools\errator-0.5.2-windows-x86_64"
+$env:Path += ";D:\tools\errator-0.6.0-windows-x86_64"
 ```
 
 或使用完整路径 `.\errator.exe`。注意 PATH 只在当前会话有效时，重开终端会恢复。
@@ -998,6 +1018,14 @@ errator ignore list
 
 配置文件设置了 `context = false`，或使用了 `--no-context`。
 
+### Q11：如何清空全部忽略
+
+```bash
+errator ignore clear
+```
+
+只删除某一条时先用 `errator ignore list` 查看 ID，再执行 `errator ignore remove <id>`。清空操作会修改 `~/.errator/ignores.json`；具体路径受 `ERRATOR_HOME` 影响。
+
 ---
 
 ## 10. 跨平台与构建
@@ -1044,7 +1072,7 @@ pwsh -File scripts/package-windows.ps1
 - 语义化版本 `MAJOR.MINOR.PATCH`，唯一来源是 `Cargo.toml`。
 - `build.rs` 嵌入 `git describe`，可通过 `errator version --json` 查看。
 - 报告数据契约独立版本化：当前 `schema_version = "1.0"`。
-- 发布以 annotated Git tag（当前 `v0.5.2`）标记，变更见 [CHANGELOG.md](CHANGELOG.md)。
+- 发布以 annotated Git tag（当前 `v0.6.0`）标记，变更见 [CHANGELOG.md](CHANGELOG.md)。
 - 规则 ID 发布后不重命名；废弃时保留 ID 并标记。
 - 发布流程见 [docs/versioning.md](docs/versioning.md)。
 
@@ -1062,7 +1090,7 @@ pwsh -File scripts/package-windows.ps1
 
 ## 14. 已知限制
 
-- 语义层 v0.5 仅支持 BERT WordPiece；SentencePiece 尚未支持。
+- 语义层 当前版本仅支持 BERT WordPiece；SentencePiece 尚未支持。
 - 单次 ONNX 推理不可内部抢占，取消在一次推理结束后生效；长序列 GPU 的 2 秒指标取决于模型与硬件。
 - `errator models download` 不内置模型地址，需要显式 URL 与可选 SHA-256。
 - 通过 `ruleset add` 安装的规则集建议自包含；相对词典/脚本路径不会随 TOML 复制。

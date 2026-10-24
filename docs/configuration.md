@@ -187,7 +187,7 @@ severity = "info"
 | `allow_gpu_fallback` | `true` | GPU 初始化或推理失败时是否回退 CPU；为 `false` 时禁用可选语义层，不阻塞规则检查 |
 | `model_path` | `None` | 显式模型；相对配置文件。为空时取 `~/.errator/models/` 中最新的 `.onnx` |
 | `vocab_path` | `None` | BERT WordPiece 词表；默认模型同目录 `vocab.txt` |
-| `tokenizer` | `"bert-base-chinese"` | v0.5 仅支持 BERT WordPiece |
+| `tokenizer` | `"bert-base-chinese"` | 当前版本仅支持 BERT WordPiece |
 | `input_names` | `["input_ids","attention_mask","token_type_ids"]` | 模型输入名，可按需只列前两个 |
 | `output_name` | `None` | 输出名；为空时优先 `logits`，否则第一个输出 |
 | `min_confidence` | `0.5` | 模型建议最低置信度 |
@@ -197,7 +197,7 @@ severity = "info"
 
 ## 忽略库
 
-持久化忽略项保存在 `~/.errator/ignores.json`，schema 版本 `1`。匹配键为 `rule_id + original`（原文精确匹配），不区分文件。可通过 CLI 或 TUI 管理。
+持久化忽略项保存在 `~/.errator/ignores.json`，schema 版本 `1`。匹配键为 `rule_id + original`（原文精确匹配），不区分文件。可通过 CLI 或 TUI 管理；`errator ignore clear` 可一次清空全部条目，`errator ignore remove <id>` 删除单条。
 
 ## 规则集
 

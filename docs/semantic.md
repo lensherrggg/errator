@@ -71,11 +71,24 @@ errator models download \
 - CLI 文本摘要、Markdown/HTML 报告与 TUI 会直接显示 **计算设备**（CPU 规则检查 / CPU ONNX / GPU DirectML / GPU CoreML），不用只靠 JSON 字段判断。
 - 报告结构与 `schema_version` 不因设备变化而变化。
 
+## 已验证模型示例
+
+以下公开模型已在 Windows + DirectML 环境完成 CPU/DirectML 实测，可作为起点：
+
+- 来源：[`Xenova/macbert4csc-base-chinese`](https://huggingface.co/Xenova/macbert4csc-base-chinese)（上游：[`shibing624/macbert4csc-base-chinese`](https://huggingface.co/shibing624/macbert4csc-base-chinese)）
+- ONNX 文件：`onnx/model_quantized.onnx`（INT8 量化，103,596,411 bytes）
+- SHA-256：`0c40a55ed4cae6df2fb32c666fb21c75bcea3543cd2dac653e0b4aff22e1e8c7`
+- 词表：`vocab.txt`（109,540 bytes）
+- SHA-256：`45bbac6b341c319adc98a532532882e91a9cefc0329aa57bac9ae761c27b291c`
+- 本地命名示例：`macbert4csc.onnx` + `vocab.txt`
+
+实测结果：CPU `semantic.device=cpu`，DirectML `semantic.device=dml`，二者均能输出 `SEMANTIC_CSC`；DirectML 初始化失败时回退 CPU。该模型由第三方分发，许可证与可用性以模型上游为准；Errator 发布包不包含权重。
+
 ## 已知限制
 
 - **DirectML**：仅 Windows + DirectX 12；模型算子覆盖与静态/动态形状取决于运行时。
 - **CoreML**：动态形状与 INT8 量化支持有限；推荐 FP16 或非量化模型，失败自动 CPU。本项目未在 Apple 硬件上做发布级实测。
-- **分词器**：v0.5 只支持 BERT WordPiece；SentencePiece 在路线图中。
+- **分词器**：当前版本只支持 BERT WordPiece；SentencePiece 在路线图中。
 - **取消**：ORT 单次 `session.run` 内部无法中断，Errator 在块之间轮询取消。长序列或很慢的 GPU 上，从按键到停止可能超过 2 秒。
 - **模型质量**：模型会误报；用 `i` 或 `ignore` 闭环治理，不要把它当最终裁决。
 - 不保证召回所有上下文错别字。

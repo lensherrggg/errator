@@ -1,6 +1,6 @@
 [package]
 name = "errator"
-version = "0.5.2"
+version = "0.6.0"
 edition = "2024"
 rust-version = "1.88"
 description = "本地文本勘误报告生成器 / Local text proofreading report generator"
