@@ -878,6 +878,22 @@ mod ui {
         }
 
         fn handle_report_key(&mut self, key: KeyEvent) -> Result<()> {
+            if key.modifiers.contains(KeyModifiers::CONTROL) {
+                let delta = match key.code {
+                    KeyCode::Up => Some(-1isize),
+                    KeyCode::Down => Some(1isize),
+                    KeyCode::PageUp => Some(-8isize),
+                    KeyCode::PageDown => Some(8isize),
+                    _ => None,
+                };
+                if let Some(delta) = delta {
+                    if let Some(report) = self.report.as_mut() {
+                        report.detail_scroll =
+                            (report.detail_scroll as isize + delta).max(0) as u16;
+                    }
+                    return Ok(());
+                }
+            }
             match key.code {
                 KeyCode::Char('q') => self.should_quit = true,
                 KeyCode::Esc => self.browse_from_report(),
@@ -1303,7 +1319,7 @@ mod ui {
                     Block::default()
                         .borders(Borders::ALL)
                         .border_type(BorderType::Rounded)
-                        .title(" 详情 "),
+                        .title(" 详情 · Ctrl+↑/↓ 滚动 "),
                 );
             frame.render_widget(detail, panes[1]);
 
@@ -1439,15 +1455,36 @@ mod ui {
         {
             lines.push(Line::from(""));
             lines.push(Line::from(Span::styled(
-                "上下文",
+                "上下文（高亮处为原文）",
                 Style::default().fg(Color::DarkGray),
             )));
-            lines.push(Line::from(Span::styled(
-                context.to_owned(),
-                Style::default().fg(Color::Gray),
-            )));
+            lines.push(context_line(issue, context));
         }
         Text::from(lines)
+    }
+
+    fn context_line(issue: &Issue, context: &str) -> Line<'static> {
+        let (background, foreground) = match issue.severity {
+            Severity::Error => (Color::Red, Color::White),
+            Severity::Warning => (Color::Yellow, Color::Black),
+            Severity::Info => (Color::Cyan, Color::Black),
+        };
+        let normal = Style::default().fg(Color::Gray);
+        let highlighted = Style::default()
+            .bg(background)
+            .fg(foreground)
+            .add_modifier(Modifier::BOLD);
+        if !issue.original.is_empty()
+            && let Some(start) = context.find(&issue.original)
+        {
+            let end = start + issue.original.len();
+            return Line::from(vec![
+                Span::styled(context[..start].to_owned(), normal),
+                Span::styled(context[start..end].to_owned(), highlighted),
+                Span::styled(context[end..].to_owned(), normal),
+            ]);
+        }
+        Line::from(Span::styled(context.to_owned(), normal))
     }
 
     fn draw_help(frame: &mut Frame<'_>) {
@@ -1472,6 +1509,7 @@ mod ui {
             Line::from("  ↑/↓ 或 j/k    切换问题"),
             Line::from("  f / 0 / 1 / 2 / 3  筛选级别（全部/error/warning/info）"),
             Line::from("  t             切换问题类型筛选（category）"),
+            Line::from("  Ctrl+↑/↓      滚动问题详情（Ctrl+PgUp/PgDn 快速滚动）"),
             Line::from("  i             忽略误报并持久化"),
             Line::from("  e             导出 Markdown / HTML / JSON / CSV"),
             Line::from("  Esc           返回文件浏览"),
@@ -1841,6 +1879,15 @@ mod ui {
         fn truncation_is_unicode_width_aware() {
             assert_eq!(truncate_width("中文", 10), "中文");
             assert!(truncate_width("这是一个很长的中文句子", 8).ends_with('…'));
+        }
+
+        #[test]
+        fn context_highlights_the_reported_original() {
+            let issue = sample_issue("使用Rust开发");
+            let line = context_line(&issue, "前文使用Rust开发，后文继续。");
+            assert_eq!(line.spans.len(), 3);
+            assert_eq!(line.spans[1].content.as_ref(), "使用Rust开发");
+            assert_eq!(line.spans[1].style.bg, Some(Color::Yellow));
         }
 
         #[test]

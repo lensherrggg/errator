@@ -53,7 +53,7 @@ max_text_length = 400
 | 字段 | 默认值 | 说明 |
 |---|---|---|
 | `min_severity` | `"info"` | 全局最低显示级别，可被 CLI 覆盖 |
-| `context` | `true` | 是否在 issue 中记录上下文 |
+| `context` | `true` | 是否在 issue 中记录上下文（最长约 400 字的窗口） |
 | `rulesets` | `[]` | 自动加载的已安装规则集名称 |
 
 ## `[rules]`

@@ -2,13 +2,13 @@
 
 | 项目 | 内容 |
 |---|---|
-| 对应版本 | 0.6.0 |
+| 对应版本 | 0.7.0 |
 | 状态 | 已实现；Windows 首发，macOS/Linux 源码可构建 |
-| 对应发布标签 | `v0.6.0` |
+| 对应发布标签 | `v0.7.0` |
 | 文档范围 | 核心架构、数据契约、关键流程、扩展机制、语义后端、TUI、质量与取舍 |
 | 需求来源 | 本地需求文档与扩展文档（未纳入 Git） |
 
-本文描述 Errator 0.6.0 的实际设计，而不是待实现构想。配置字段、规则、协议、命令等使用细节分别见 [configuration.md](configuration.md)、[rules.md](rules.md)、[external-checkers.md](external-checkers.md)、[semantic.md](semantic.md)。
+本文描述 Errator 0.7.0 的实际设计，而不是待实现构想。配置字段、规则、协议、命令等使用细节分别见 [configuration.md](configuration.md)、[rules.md](rules.md)、[external-checkers.md](external-checkers.md)、[semantic.md](semantic.md)。
 
 ---
 
@@ -449,6 +449,7 @@ Browser ──Enter(file)──▶ Checking ──Done──▶ Report
 - 报告页支持方向键、`f`/`0-3` 级别筛选、`t` 问题类型筛选、`i` 忽略、`e` 四格式导出；级别与类型可叠加；
 - 导出写到源文件同目录，文件名带时间戳，不覆盖；
 - 检查页显示当前计算设备；报告页头部第一行固定显示设备与问题计数，源文件独立一行并按终端宽度截断；底部固定显示设备与最新状态，避免超长路径或状态覆盖设备信息；
+- 上下文保留约 400 字窗口；TUI 详情高亮问题原文，并支持 `Ctrl+↑/↓` / `Ctrl+PgUp/PgDn` 滚动长段落；
 - 启动/退出严格恢复 raw mode、alternate screen、光标；
 - 非 TTY 执行 `tui` 会明确报错，不尝试启动。
 
@@ -461,7 +462,7 @@ UI 渲染使用 `ratatui`；终端缓冲区测试覆盖浏览器、报告、CJK 
 ```json
 {
   "schema_version": "1.0",
-  "tool": { "name": "errator", "version": "0.6.0" },
+  "tool": { "name": "errator", "version": "0.7.0" },
   "generated_at": "2026-10-24T20:56:24+08:00",
   "source": "docs/example.md",
   "cancelled": false,
@@ -726,10 +727,10 @@ macOS CoreML 分支已实现但未在 Apple 硬件上做发布级实测，作为
 
 当前结果：
 
-- 默认特性：46 个测试通过；
-- `--features semantic-directml`：50 个测试通过；
+- 默认特性：48 个测试通过；
+- `--features semantic-directml`：52 个测试通过；
 - Windows DirectML toy 模型实机通过；
-- 打包产物 `git: v0.6.0`。
+- 打包产物 `git: v0.7.0`。
 
 ---
 
@@ -745,7 +746,7 @@ macOS CoreML 分支已实现但未在 Apple 硬件上做发布级实测，作为
 - CHANGELOG 遵循 Keep a Changelog；
 - Windows 发布脚本运行测试、构建 `semantic-directml`、收集 `DirectML.dll`、生成 SHA-256 和 zip。
 
-当前发布标签：`v0.6.0`。后续纯文档提交不移动已发布 tag。
+当前发布标签：`v0.7.0`。后续纯文档提交不移动已发布 tag。
 
 ---
 
@@ -829,4 +830,4 @@ errator/
 
 ## 21. 结论
 
-Errator 0.6.0 的核心取舍是：**把确定性的规则检查与稳定的报告契约做扎实，把语义能力和 GPU 作为可替换、可降级、可观测的可选层**。这一结构允许后续在不改变 CLI、TUI 和报告 schema 的前提下增加规则、检查器、导出器和推理后端；也明确记录了当前在 CoreML、SentencePiece、取消粒度和规则集资源打包上的限制。
+Errator 0.7.0 的核心取舍是：**把确定性的规则检查与稳定的报告契约做扎实，把语义能力和 GPU 作为可替换、可降级、可观测的可选层**。这一结构允许后续在不改变 CLI、TUI 和报告 schema 的前提下增加规则、检查器、导出器和推理后端；也明确记录了当前在 CoreML、SentencePiece、取消粒度和规则集资源打包上的限制。

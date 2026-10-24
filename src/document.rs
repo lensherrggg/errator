@@ -264,8 +264,11 @@ fn build_line_starts(text: &str) -> Vec<usize> {
 }
 
 fn clip_context(line: &str, anchor_byte: usize) -> String {
+    const CONTEXT_MAX_CHARS: usize = 400;
+    const CONTEXT_BEFORE_CHARS: usize = 160;
+
     let line = line.replace(['\r', '\n', '\t'], " ");
-    if line.chars().count() <= 120 {
+    if line.chars().count() <= CONTEXT_MAX_CHARS {
         return line.trim().to_owned();
     }
     let anchor_chars = line
@@ -273,9 +276,9 @@ fn clip_context(line: &str, anchor_byte: usize) -> String {
         .map(|prefix| prefix.chars().count())
         .unwrap_or(0);
     let chars: Vec<char> = line.chars().collect();
-    let start = anchor_chars.saturating_sub(48);
-    let end = (start + 112).min(chars.len());
-    let start = end.saturating_sub(112);
+    let start = anchor_chars.saturating_sub(CONTEXT_BEFORE_CHARS);
+    let end = (start + CONTEXT_MAX_CHARS).min(chars.len());
+    let start = end.saturating_sub(CONTEXT_MAX_CHARS);
     let mut result = String::new();
     if start > 0 {
         result.push('…');
@@ -743,5 +746,16 @@ mod tests {
         );
         assert!(doc.is_masked(doc.text.find("使用Rust").unwrap(), 4));
         assert!(doc.is_masked(doc.text.find("https").unwrap(), 4));
+    }
+
+    #[test]
+    fn long_context_keeps_a_wide_window_around_the_issue() {
+        let text = format!("{}目标错字{}", "前".repeat(300), "后".repeat(300));
+        let doc = Document::from_text(text, DocumentKind::Text);
+        let offset = doc.text.find("目标错字").unwrap();
+        let context = doc.context_for(offset).unwrap();
+        assert!(context.contains("目标错字"));
+        assert!(context.chars().count() > 300);
+        assert!(context.chars().count() <= 402);
     }
 }

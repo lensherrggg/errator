@@ -11,6 +11,14 @@
 - Template-based custom exporters.
 - Ruleset asset bundling for installed rulesets.
 
+## [0.7.0] - 2026-10-24
+
+### Added
+
+- TUI 问题详情的上下文最长保留约 400 字（原 120 字），更适合查看段落级语境。
+- TUI 上下文中用彩色底色高亮当前问题原文（error 红 / warning 黄 / info 青）。
+- TUI 详情支持 `Ctrl+↑/↓` 与 `Ctrl+PgUp/PgDn` 滚动，长段落不再只能看到开头。
+
 ## [0.6.0] - 2026-10-24
 
 ### Added

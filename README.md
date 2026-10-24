@@ -2,7 +2,7 @@
 
 本地文本勘误报告生成器。读取 `.txt` / `.md` / `.docx`，运行格式、标点、空格、错别字、术语一致性与自定义规则检查；可选加载本地 ONNX 模型做上下文纠错。结果可在终端查看，也可导出 Markdown / HTML / JSON / CSV；无参数启动 TUI，全程默认离线。
 
-当前版本：**0.6.0**（Windows 优先发布；源码面向 Windows / macOS / Linux）。
+当前版本：**0.7.0**（Windows 优先发布；源码面向 Windows / macOS / Linux）。
 
 ## 目录
 
@@ -32,6 +32,7 @@
 - **可选语义层**：ONNX Runtime CPU 始终可用；Windows DirectML、macOS CoreML 为可选加速，初始化/推理失败自动回退 CPU，报告记录真实设备。
 - **设备透明**：CLI 摘要、Markdown/HTML 报告和 TUI 状态栏明确显示实际执行设备（CPU 规则检查 / CPU ONNX / GPU DirectML / GPU CoreML）。
 - **误报治理**：TUI `i` 持久化忽略；CLI `ignore add/list/remove/clear`；每次运行可用 `--ignore` 临时过滤。
+- **上下文可读性**：上下文最长保留 400 字；TUI 详情中用高亮色标出问题原文，并支持滚动查看长段落。
 - **快速定位**：TUI 文件浏览页按 `/` 按文件名筛选当前目录；报告页按 `t` 在问题类型（category）之间筛选。
 - **可取消**：`CancellationToken` + 流式进度；取消时输出部分报告并返回退出码 `3`。
 
@@ -59,8 +60,8 @@ docs/
 在 PowerShell 中：
 
 ```powershell
-# 假设解压到 D:\tools\errator-0.6.0-windows-x86_64
-cd D:\tools\errator-0.6.0-windows-x86_64
+# 假设解压到 D:\tools\errator-0.7.0-windows-x86_64
+cd D:\tools\errator-0.7.0-windows-x86_64
 
 .\errator.exe version
 .\errator.exe check .\doc.md
@@ -69,7 +70,7 @@ cd D:\tools\errator-0.6.0-windows-x86_64
 可选：仅当前 PowerShell 会话加入 PATH：
 
 ```powershell
-$env:Path += ";D:\tools\errator-0.6.0-windows-x86_64"
+$env:Path += ";D:\tools\errator-0.7.0-windows-x86_64"
 errator check .\doc.md
 ```
 
@@ -78,7 +79,7 @@ errator check .\doc.md
 校验下载包（PowerShell）：
 
 ```powershell
-Get-FileHash .\errator-0.6.0-windows-x86_64.zip -Algorithm SHA256
+Get-FileHash .\errator-0.7.0-windows-x86_64.zip -Algorithm SHA256
 # 与 .sha256 文件中的值比较
 ```
 
@@ -183,7 +184,7 @@ errator check doc.md
 Errator 勘误报告
 源文件：doc.md
 生成时间：2026-10-24T21:06:39+08:00
-工具版本：0.6.0
+工具版本：0.7.0
 计算设备：CPU（规则检查）
 语义检查：关闭（仅规则检查）
 
@@ -350,6 +351,7 @@ errator tui ./docs --no-gpu
 
 - 左侧（窄屏为上方）是问题列表；
 - 右侧（窄屏为下方）显示选中问题的详情、原文、建议、上下文与来源；
+- “上下文”最长约 400 字；问题原文在上下文中用彩色底色高亮；
 - 顶部第一行固定显示**计算设备**与问题计数，第二行显示源文件，第三行显示筛选状态；
 - 底部第一行是快捷键，第二行固定显示计算设备与最近状态/提示；
 - 文件浏览页的底部显示目录状态和快捷键。
@@ -362,6 +364,8 @@ errator tui ./docs --no-gpu
 | `f` | 循环筛选级别：全部 → error → warning → info |
 | `0` / `1` / `2` / `3` | 直接筛选全部 / error / warning / info |
 | `t` | 循环筛选问题类型（category），如 `spacing`、`punctuation`、`semantic` |
+| `Ctrl+↑` / `Ctrl+↓` | 滚动问题详情（长上下文） |
+| `Ctrl+PageUp` / `Ctrl+PageDown` | 快速滚动问题详情 |
 | `i` | 忽略当前误报并持久化 |
 | `e` | 打开导出菜单 |
 | `Esc` | 返回文件浏览 |
@@ -723,7 +727,7 @@ PROJECT = "docs"
 ```json
 {
   "schema_version": "1.0",
-  "tool": { "name": "errator", "version": "0.6.0" },
+  "tool": { "name": "errator", "version": "0.7.0" },
   "generated_at": "2026-10-24T21:06:39+08:00",
   "source": "doc.md",
   "cancelled": false,
@@ -964,7 +968,7 @@ TUI 需要交互式终端；非 TTY 环境请使用 errator check
 把发布目录加入当前 PATH：
 
 ```powershell
-$env:Path += ";D:\tools\errator-0.6.0-windows-x86_64"
+$env:Path += ";D:\tools\errator-0.7.0-windows-x86_64"
 ```
 
 或使用完整路径 `.\errator.exe`。注意 PATH 只在当前会话有效时，重开终端会恢复。
@@ -1072,7 +1076,7 @@ pwsh -File scripts/package-windows.ps1
 - 语义化版本 `MAJOR.MINOR.PATCH`，唯一来源是 `Cargo.toml`。
 - `build.rs` 嵌入 `git describe`，可通过 `errator version --json` 查看。
 - 报告数据契约独立版本化：当前 `schema_version = "1.0"`。
-- 发布以 annotated Git tag（当前 `v0.6.0`）标记，变更见 [CHANGELOG.md](CHANGELOG.md)。
+- 发布以 annotated Git tag（当前 `v0.7.0`）标记，变更见 [CHANGELOG.md](CHANGELOG.md)。
 - 规则 ID 发布后不重命名；废弃时保留 ID 并标记。
 - 发布流程见 [docs/versioning.md](docs/versioning.md)。
 
