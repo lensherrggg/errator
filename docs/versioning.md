@@ -64,3 +64,15 @@ errator-0.7.2-windows-x86_64.zip.sha256
 ```
 
 包内 `VERSION.txt` 由 `errator version` 生成，包含 Git 描述、平台和 schema 版本。
+
+## 便携离线包
+
+`scripts/package-portable.ps1` 生成 `dist/errator-<version>-windows-x86_64-portable/` 和 zip，内容包括：
+
+- `errator.exe`、`DirectML.dll`；
+- app-local VC++ 运行库 DLL；
+- README、CHANGELOG、LICENSE、docs 与离线迁移说明；
+- `data/models/` 中预置的 ONNX 模型、词表与模型信息；
+- `run-errator.cmd`：把 `ERRATOR_HOME` 指向便携目录的 `data/`。
+
+该包用于无网络机器；不会修改目标机的用户目录或 PATH。切换版本时复制新程序目录即可，保留 `data/` 可继续使用配置、忽略项和模型。

@@ -123,6 +123,12 @@ pwsh -File scripts/package-windows.ps1
 
 产物位于 `dist/`。
 
+离线迁移到无网络机器时，见 [docs/offline-migration.md](docs/offline-migration.md)。也可生成包含程序、VC 运行库、模型和启动器的便携离线包：
+
+```powershell
+pwsh -File scripts/package-portable.ps1
+```
+
 ### 1.3 首次初始化
 
 建议先执行一次：
@@ -1116,6 +1122,7 @@ pwsh -File scripts/package-windows.ps1
 - [docs/external-checkers.md](docs/external-checkers.md)：L2 子进程协议
 - [docs/semantic.md](docs/semantic.md)：ONNX、DirectML、CoreML 与降级
 - [docs/versioning.md](docs/versioning.md)：发布流程
+- [docs/offline-migration.md](docs/offline-migration.md)：离线迁移与便携包
 - [docs/THIRD_PARTY_NOTICES.md](docs/THIRD_PARTY_NOTICES.md)：第三方组件
 
 ## 许可证

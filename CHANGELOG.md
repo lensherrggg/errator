@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- `docs/offline-migration.md` 与 `scripts/package-portable.ps1`：生成包含程序、DirectML、VC 运行库、模型和便携启动器的离线迁移包。
+
 ### Planned
 
 - SentencePiece tokenizer support for semantic models.

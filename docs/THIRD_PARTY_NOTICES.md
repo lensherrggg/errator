@@ -19,6 +19,22 @@ runtime component in addition to Rust crates listed in `Cargo.lock`:
 - See the DirectML repository and the ONNX Runtime distribution for the
   applicable Microsoft license terms.
 
+## Microsoft Visual C++ runtime
+
+The portable Windows package places the following app-local runtime libraries
+next to `errator.exe` for offline use on machines without the Visual C++
+Redistributable installed:
+
+- `vcruntime140.dll`
+- `vcruntime140_1.dll`
+- `msvcp140.dll`
+- `msvcp140_1.dll`
+
+These files are Microsoft Visual C++ Redistributable runtime components; their
+redistribution is governed by the Microsoft Visual Studio license terms.
+The regular non-portable package relies on the runtime already being present on
+the target system.
+
 ## Rust dependencies
 
 All Rust crate licenses are recorded in `Cargo.lock` and can be audited with
