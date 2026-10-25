@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- 修复 Rust 1.99 新增 Clippy 规则 `chunks_exact_to_as_chunks` 导致的 CI 失败；UTF-16 解码改用 `as_chunks::<2>()`（Rust 1.88 起稳定）。
+
 ### Planned
 
 - SentencePiece tokenizer support for semantic models.
