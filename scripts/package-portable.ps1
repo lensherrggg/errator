@@ -62,7 +62,8 @@ Copy-Item (Join-Path $root 'docs/offline-migration.md') (Join-Path $bundleDir 'O
 Copy-Item (Join-Path $root 'docs/THIRD_PARTY_NOTICES.md') $bundleDir
 
 $dataDir = Join-Path $bundleDir 'data'
-$modelsDir = Join-Path $dataDir 'models'
+$modelsDir = Join-Path $bundleDir 'models'
+New-Item -ItemType Directory -Force $dataDir | Out-Null
 New-Item -ItemType Directory -Force $modelsDir | Out-Null
 $onnxFiles = @()
 if (Test-Path $ModelDir) {

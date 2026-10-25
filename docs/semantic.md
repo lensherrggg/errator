@@ -16,12 +16,16 @@ ONNX Runtime 固定为 **1.22**（`ort = "=2.0.0-rc.10"`）。原因是 DirectML
 ## 模型准备
 
 1. 准备 BERT WordPiece 词表的字符级纠错 ONNX 模型（首选 MacBERT4CSC 量化版）。
-2. 放置模型与词表：
+2. 优先放置到 exe 同目录的 `models\`：
    ```text
-   ~/.errator/models/
-     macbert4csc.onnx
-     vocab.txt
+   <errator.exe 所在目录>\
+     errator.exe
+     DirectML.dll
+     models\
+       macbert4csc.onnx
+       vocab.txt
    ```
+   也支持 `~/.errator/models/`；发现顺序为 `semantic.model_path` → `<exe>\models` → `<exe>` → `~/.errator/models`。
    或显式配置：
    ```toml
    [semantic]
@@ -35,7 +39,7 @@ ONNX Runtime 固定为 **1.22**（`ort = "=2.0.0-rc.10"`）。原因是 DirectML
    errator check doc.md --semantic on --device auto
    ```
 
-也可显式下载（核心工具不会隐式联网）：
+也可显式下载（核心工具不会隐式联网；默认下载到 `~/.errator/models/`，可再复制到 `<exe>\models\`）：
 
 ```bash
 errator models download \

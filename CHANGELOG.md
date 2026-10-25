@@ -4,16 +4,20 @@
 
 ## [Unreleased]
 
-### Added
-
-- `docs/offline-migration.md` 与 `scripts/package-portable.ps1`：生成包含程序、DirectML、VC 运行库、模型和便携启动器的离线迁移包。
-
 ### Planned
 
 - SentencePiece tokenizer support for semantic models.
 - Native SDK crate extraction and compile-time rule registration.
 - Template-based custom exporters.
 - Ruleset asset bundling for installed rulesets.
+
+## [0.8.0] - 2026-10-25
+
+### Added
+
+- 模型发现支持二进制旁目录：优先查找 `<exe目录>\models\`，其次 `<exe目录>`，最后回退 `~/.errator/models/`。模型和词表可随 exe/DLL 一起复制。
+- 便携离线包改为把模型放在 exe 同目录的 `models\`，启动器只需把配置/忽略项指向 `data\`。
+- `docs/offline-migration.md` 与 `scripts/package-portable.ps1`：生成包含程序、DirectML、VC 运行库、模型和便携启动器的离线迁移包。
 
 ## [0.7.2] - 2026-10-24
 

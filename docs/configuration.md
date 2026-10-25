@@ -185,7 +185,7 @@ severity = "info"
 | `mode` | `"auto"` | `auto` / `on` / `off`；CLI `--semantic` 优先 |
 | `device` | `"auto"` | `auto` / `cpu` / `dml` / `coreml`；CLI `--device` 优先 |
 | `allow_gpu_fallback` | `true` | GPU 初始化或推理失败时是否回退 CPU；为 `false` 时禁用可选语义层，不阻塞规则检查 |
-| `model_path` | `None` | 显式模型；相对配置文件。为空时取 `~/.errator/models/` 中最新的 `.onnx` |
+| `model_path` | `None` | 显式模型；相对配置文件。为空时按 `<exe>\models` → `<exe>` → `~/.errator/models` 发现最新 `.onnx` |
 | `vocab_path` | `None` | BERT WordPiece 词表；默认模型同目录 `vocab.txt` |
 | `tokenizer` | `"bert-base-chinese"` | 当前版本仅支持 BERT WordPiece |
 | `input_names` | `["input_ids","attention_mask","token_type_ids"]` | 模型输入名，可按需只列前两个 |

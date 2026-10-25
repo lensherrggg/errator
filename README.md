@@ -2,7 +2,7 @@
 
 本地文本勘误报告生成器。读取 `.txt` / `.md` / `.docx`，运行格式、标点、空格、错别字、术语一致性与自定义规则检查；可选加载本地 ONNX 模型做上下文纠错。结果可在终端查看，也可导出 Markdown / HTML / JSON / CSV；无参数启动 TUI，全程默认离线。
 
-当前版本：**0.7.2**（Windows 优先发布；源码面向 Windows / macOS / Linux）。
+当前版本：**0.8.0**（Windows 优先发布；源码面向 Windows / macOS / Linux）。
 
 ## 目录
 
@@ -60,8 +60,8 @@ docs/
 在 PowerShell 中：
 
 ```powershell
-# 假设解压到 D:\tools\errator-0.7.2-windows-x86_64
-cd D:\tools\errator-0.7.2-windows-x86_64
+# 假设解压到 D:\tools\errator-0.8.0-windows-x86_64
+cd D:\tools\errator-0.8.0-windows-x86_64
 
 .\errator.exe version
 .\errator.exe check .\doc.md
@@ -70,7 +70,7 @@ cd D:\tools\errator-0.7.2-windows-x86_64
 可选：仅当前 PowerShell 会话加入 PATH：
 
 ```powershell
-$env:Path += ";D:\tools\errator-0.7.2-windows-x86_64"
+$env:Path += ";D:\tools\errator-0.8.0-windows-x86_64"
 errator check .\doc.md
 ```
 
@@ -79,7 +79,7 @@ errator check .\doc.md
 校验下载包（PowerShell）：
 
 ```powershell
-Get-FileHash .\errator-0.7.2-windows-x86_64.zip -Algorithm SHA256
+Get-FileHash .\errator-0.8.0-windows-x86_64.zip -Algorithm SHA256
 # 与 .sha256 文件中的值比较
 ```
 
@@ -190,7 +190,7 @@ errator check doc.md
 Errator 勘误报告
 源文件：doc.md
 生成时间：2026-10-24T21:06:39+08:00
-工具版本：0.7.2
+工具版本：0.8.0
 计算设备：CPU（规则检查）
 语义检查：关闭（仅规则检查）
 
@@ -543,7 +543,7 @@ errator models download --url "..." --name macbert4csc.onnx --sha256 "<hex>" --f
 errator models list
 ```
 
-- 下载目标默认为 `~/.errator/models/`。
+- 下载目标默认为 `~/.errator/models/`；若希望模型跟随二进制，将下载结果复制到 `<exe目录>\models\`。
 - `--name` 必须以 `.onnx` 结尾。
 - 没有 `--url` 时读取 `ERRATOR_MODEL_URL`；两者都没有则报错。
 - 模型下载是唯一由核心工具主动发起的网络行为。
@@ -735,7 +735,7 @@ PROJECT = "docs"
 ```json
 {
   "schema_version": "1.0",
-  "tool": { "name": "errator", "version": "0.7.2" },
+  "tool": { "name": "errator", "version": "0.8.0" },
   "generated_at": "2026-10-24T21:06:39+08:00",
   "source": "doc.md",
   "cancelled": false,
@@ -808,7 +808,18 @@ UTF-8、CRLF、RFC 4180 风格引号转义，适合电子表格与数据管道�
 2. 同目录的 `vocab.txt`；
 3. 二进制包含 `semantic` feature（Windows 发布包默认包含 CPU + DirectML）。
 
-放置到：
+放置到 exe 同目录的 `models\`（推荐，方便连同程序一起复制）：
+
+```text
+<errator.exe 所在目录>\
+  errator.exe
+  DirectML.dll
+  models\
+    macbert4csc.onnx
+    vocab.txt
+```
+
+也支持用户目录：
 
 ```text
 ~/.errator/models/
@@ -828,7 +839,7 @@ min_confidence = 0.5
 max_text_length = 400
 ```
 
-`model_path` 为空时，Errator 会选取 `~/.errator/models/` 中最新的 `.onnx`。
+模型发现顺序：`semantic.model_path` → `<exe目录>\models\` → `<exe目录>\` → `~/.errator/models/`。同一目录有多个 `.onnx` 时选最新文件。
 
 ### 7.2 检查设备状态
 
@@ -976,7 +987,7 @@ TUI 需要交互式终端；非 TTY 环境请使用 errator check
 把发布目录加入当前 PATH：
 
 ```powershell
-$env:Path += ";D:\tools\errator-0.7.2-windows-x86_64"
+$env:Path += ";D:\tools\errator-0.8.0-windows-x86_64"
 ```
 
 或使用完整路径 `.\errator.exe`。注意 PATH 只在当前会话有效时，重开终端会恢复。
@@ -1084,7 +1095,7 @@ pwsh -File scripts/package-windows.ps1
 - 语义化版本 `MAJOR.MINOR.PATCH`，唯一来源是 `Cargo.toml`。
 - `build.rs` 嵌入 `git describe`，可通过 `errator version --json` 查看。
 - 报告数据契约独立版本化：当前 `schema_version = "1.0"`。
-- 发布以 annotated Git tag（当前 `v0.7.2`）标记，变更见 [CHANGELOG.md](CHANGELOG.md)。
+- 发布以 annotated Git tag（当前 `v0.8.0`）标记，变更见 [CHANGELOG.md](CHANGELOG.md)。
 - 规则 ID 发布后不重命名；废弃时保留 ID 并标记。
 - 发布流程见 [docs/versioning.md](docs/versioning.md)。
 

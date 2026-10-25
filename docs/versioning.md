@@ -50,7 +50,7 @@
 `scripts/package-windows.ps1` 生成：
 
 ```text
-dist/errator-0.7.2-windows-x86_64/
+dist/errator-0.8.0-windows-x86_64/
   errator.exe
   DirectML.dll          # 仅在启用 semantic-directml 且构建产物存在时
   README.md
@@ -59,8 +59,8 @@ dist/errator-0.7.2-windows-x86_64/
   THIRD_PARTY_NOTICES.md
   docs/                 # 设计、配置、规则、协议、模型与版本说明
   VERSION.txt
-errator-0.7.2-windows-x86_64.zip
-errator-0.7.2-windows-x86_64.zip.sha256
+errator-0.8.0-windows-x86_64.zip
+errator-0.8.0-windows-x86_64.zip.sha256
 ```
 
 包内 `VERSION.txt` 由 `errator version` 生成，包含 Git 描述、平台和 schema 版本。
@@ -72,7 +72,7 @@ errator-0.7.2-windows-x86_64.zip.sha256
 - `errator.exe`、`DirectML.dll`；
 - app-local VC++ 运行库 DLL；
 - README、CHANGELOG、LICENSE、docs 与离线迁移说明；
-- `data/models/` 中预置的 ONNX 模型、词表与模型信息；
+- `models/` 中预置的 ONNX 模型、词表与模型信息（与 `errator.exe` 同级）；
 - `run-errator.cmd`：把 `ERRATOR_HOME` 指向便携目录的 `data/`。
 
-该包用于无网络机器；不会修改目标机的用户目录或 PATH。切换版本时复制新程序目录即可，保留 `data/` 可继续使用配置、忽略项和模型。
+该包用于无网络机器；不会修改目标机的用户目录或 PATH。切换版本时复制新程序目录即可，保留 `data/` 和 `models/` 可继续使用配置、忽略项和模型。

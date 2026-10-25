@@ -7,7 +7,7 @@ Errator 本身不需要安装，也不需要联网即可运行规则检查、TUI
 | 内容 | 默认位置 | 是否必需 |
 |---|---|---|
 | 程序目录 | `D:\tools\errator` 或版本化目录 | 必需 |
-| 模型 + 词表 | `%USERPROFILE%\.errator\models\` | 可选（不用语义检查可不带） |
+| 模型 + 词表 | `<程序目录>\models\`（优先）或 `%USERPROFILE%\.errator\models\` | 可选（不用语义检查可不带） |
 | 配置 | `%USERPROFILE%\.errator\config.toml` | 可选 |
 | 忽略库 | `%USERPROFILE%\.errator\ignores.json` | 可选 |
 | 规则集 | `%USERPROFILE%\.errator\rulesets\` | 可选 |
@@ -35,12 +35,14 @@ ErratorPortable\
   msvcp140.dll
   msvcp140_1.dll
   run-errator.cmd
+  models\
+    macbert4csc.onnx
+    vocab.txt
+    MODEL_INFO.txt
   data\
-    models\
-      macbert4csc.onnx
-      vocab.txt
-      MODEL_INFO.txt
 ```
+
+模型放在 exe 同目录的 `models\` 中，Errator 会优先从二进制旁发现；`data\` 只保存配置、忽略项和规则集。
 
 四个 `vcruntime` / `msvcp` DLL 是 VC++ 运行库。Windows 10/11 通常已安装，但在全新的离线机器上可能缺失；建议随包携带（app-local 放置）。
 
@@ -53,7 +55,7 @@ set "ERRATOR_HOME=%~dp0data"
 "%~dp0errator.exe" %*
 ```
 
-这样所有配置、忽略项、模型和规则集都保存在便携目录的 `data\` 下，不依赖用户目录，也不会写入系统。
+这样配置、忽略项和规则集保存在便携目录的 `data\` 下，模型保存在 exe 旁的 `models\` 下，不依赖用户目录，也不会写入系统。
 
 双击 `run-errator.cmd` 启动 TUI；命令行使用：
 
@@ -68,16 +70,16 @@ run-errator.cmd version
 如果不想使用便携目录，也可以：
 
 ```powershell
-# 目标机上创建数据目录
-New-Item -ItemType Directory -Force "$env:USERPROFILE\.errator\models"
+# 目标机上创建程序目录与模型目录
+New-Item -ItemType Directory -Force "D:\tools\errator\models"
 
 # 从 U 盘复制
 Copy-Item "E:\ErratorPortable\errator.exe" "D:\tools\errator\" -Force
 Copy-Item "E:\ErratorPortable\DirectML.dll" "D:\tools\errator\" -Force
-Copy-Item "E:\ErratorPortable\models\*" "$env:USERPROFILE\.errator\models\" -Force
+Copy-Item "E:\ErratorPortable\models\*" "D:\tools\errator\models\" -Force
 ```
 
-然后直接运行 `D:\tools\errator\errator.exe`。默认会自动发现 `%USERPROFILE%\.errator\models\` 中的模型。
+然后直接运行 `D:\tools\errator\errator.exe`。Errator 会优先发现 exe 同目录 `models\` 中的模型，其次才使用 `%USERPROFILE%\.errator\models\`。
 
 如果有配置或忽略项，也一并复制：
 
@@ -95,10 +97,10 @@ Copy-Item "E:\ErratorData\rulesets" "$env:USERPROFILE\.errator\" -Recurse -Force
 $src = "D:\tools\errator"
 $dst = "E:\ErratorPortable"
 
-New-Item -ItemType Directory -Force "$dst\data\models" | Out-Null
+New-Item -ItemType Directory -Force "$dst\models" | Out-Null
 Copy-Item "$src\*" $dst -Recurse -Force
-Copy-Item "$env:USERPROFILE\.errator\models\macbert4csc.onnx" "$dst\data\models\" -Force
-Copy-Item "$env:USERPROFILE\.errator\models\vocab.txt" "$dst\data\models\" -Force
+Copy-Item "$env:USERPROFILE\.errator\models\macbert4csc.onnx" "$dst\models\" -Force
+Copy-Item "$env:USERPROFILE\.errator\models\vocab.txt" "$dst\models\" -Force
 ```
 
 再创建上面的 `run-errator.cmd`。把整个 `E:\ErratorPortable` 复制到 U 盘即可。
@@ -119,8 +121,8 @@ Copy-Item "$env:USERPROFILE\.errator\models\vocab.txt" "$dst\data\models\" -Forc
 
 预期：
 
-- `version` 显示 `git: v0.7.x`；
-- `devices` 显示“本地模型：...\data\models\macbert4csc.onnx”；
+- `version` 显示 `git: v0.8.0`；
+- `devices` 显示“本地模型：...\models\macbert4csc.onnx”；
 - `--semantic off` 仅规则检查，不需要 ONNX；
 - `--semantic on --device cpu` 使用 CPU 语义检查；
 - DirectML 可用时 `--device auto` 显示 `GPU · DirectML`；不可用会回退 CPU，不影响规则检查。

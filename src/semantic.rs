@@ -350,8 +350,9 @@ fn platform_rejection(device: DeviceKind) -> Option<String> {
     }
 }
 
-/// Find the configured model, otherwise the newest `.onnx` file directly in
-/// `~/.errator/models/`.
+/// Find the configured model, then look next to the executable, then fall back
+/// to the per-user model store. Binary-local models make the Windows folder
+/// portable: copy the exe, DLLs and a `models/` directory together.
 pub fn discover_model(config: &Config) -> Option<PathBuf> {
     if let Some(path) = &config.semantic.model_path {
         let resolved = crate::config::resolve_relative(path, &config.source_dir)
@@ -360,8 +361,28 @@ pub fn discover_model(config: &Config) -> Option<PathBuf> {
             return Some(resolved);
         }
     }
-    let directory = paths::models_dir().ok()?;
-    let mut candidates: Vec<(std::time::SystemTime, PathBuf)> = std::fs::read_dir(&directory)
+
+    let mut directories = Vec::new();
+    if let Ok(executable) = std::env::current_exe()
+        && let Some(directory) = executable.parent()
+    {
+        directories.push(directory.join("models"));
+        directories.push(directory.to_owned());
+    }
+    if let Ok(directory) = paths::models_dir() {
+        directories.push(directory);
+    }
+
+    for directory in directories {
+        if let Some(model) = newest_onnx_in(&directory) {
+            return Some(model);
+        }
+    }
+    None
+}
+
+fn newest_onnx_in(directory: &Path) -> Option<PathBuf> {
+    let mut candidates: Vec<(std::time::SystemTime, PathBuf)> = std::fs::read_dir(directory)
         .ok()?
         .filter_map(Result::ok)
         .filter(|entry| {
@@ -455,5 +476,16 @@ mod tests {
         // device field.
         let runtime = prepare(&config, SemanticMode::Auto, DeviceRequest::Auto, false);
         assert!(["cpu", "dml", "coreml"].contains(&runtime.info.device.as_str()));
+    }
+
+    #[test]
+    fn newest_onnx_is_discovered_in_a_directory() {
+        let temp = tempfile::TempDir::new().unwrap();
+        std::fs::write(temp.path().join("macbert.onnx"), b"not a real model").unwrap();
+        std::fs::write(temp.path().join("vocab.txt"), b"vocab").unwrap();
+        assert_eq!(
+            newest_onnx_in(temp.path()),
+            Some(temp.path().join("macbert.onnx"))
+        );
     }
 }
